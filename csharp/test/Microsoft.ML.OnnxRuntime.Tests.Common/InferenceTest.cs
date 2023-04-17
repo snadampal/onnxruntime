@@ -135,7 +135,7 @@ namespace Microsoft.ML.OnnxRuntime.Tests
 #endif
 
 #if USE_ROCM
-                opt.AppendExecutionProvider_ROCM(0);
+                opt.AppendExecutionProvider_ROCm(0);
 #endif
 
 #if USE_TENSORRT
@@ -1678,7 +1678,7 @@ namespace Microsoft.ML.OnnxRuntime.Tests
 #endif
 
 #if USE_ROCM
-                options.AppendExecutionProvider_ROCM(0);
+                options.AppendExecutionProvider_ROCm(0);
 #endif
 
                 using (var session = new InferenceSession(model, options))
