@@ -46,7 +46,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             var allocator = OrtAllocator.DefaultInstance;
             // Process provider options string
-            NativeApiStatus.VerifySuccess(NativeMethods.OrtGetTensorRTProviderOptionsAsString(handle, 
+            NativeApiStatus.VerifySuccess(NativeMethods.OrtGetTensorRTProviderOptionsAsString(handle,
                 allocator.Pointer, out IntPtr providerOptions));
             return NativeOnnxValueHelper.StringFromNativeUtf8(providerOptions, allocator);
         }
@@ -151,7 +151,7 @@ namespace Microsoft.ML.OnnxRuntime
         {
             var allocator = OrtAllocator.DefaultInstance;
             // Process provider options string
-            NativeApiStatus.VerifySuccess(NativeMethods.OrtGetCUDAProviderOptionsAsString(handle, 
+            NativeApiStatus.VerifySuccess(NativeMethods.OrtGetCUDAProviderOptionsAsString(handle,
                 allocator.Pointer, out IntPtr providerOptions));
             return NativeOnnxValueHelper.StringFromNativeUtf8(providerOptions, allocator);
         }
@@ -241,14 +241,15 @@ namespace Microsoft.ML.OnnxRuntime
         public string GetOptions()
         {
             var allocator = OrtAllocator.DefaultInstance;
-
             // Process provider options string
-            IntPtr providerOptions = IntPtr.Zero;
-            NativeApiStatus.VerifySuccess(NativeMethods.OrtGetROCMProviderOptionsAsString(handle, allocator.Pointer, out providerOptions));
-            using (var ortAllocation = new OrtMemoryAllocation(allocator, providerOptions, 0))
-            {
-                return NativeOnnxValueHelper.StringFromNativeUtf8(providerOptions);
-            }
+            NativeApiStatus.VerifySuccess(NativeMethods.OrtGetROCMProviderOptionsAsString(handle,
+                allocator.Pointer, out IntPtr providerOptions));
+            return NativeOnnxValueHelper.StringFromNativeUtf8(providerOptions, allocator);
+        }
+
+        private static IntPtr UpdateROCMProviderOptions(IntPtr handle, IntPtr[] keys, IntPtr[] values, UIntPtr count)
+        {
+            return NativeMethods.OrtUpdateROCMProviderOptions(handle, keys, values, count);
         }
 
         /// <summary>
@@ -259,14 +260,7 @@ namespace Microsoft.ML.OnnxRuntime
         /// <param name="providerOptions">key/value pairs used to configure a ROCm Execution Provider</param>
         public void UpdateOptions(Dictionary<string, string> providerOptions)
         {
-
-            using (var cleanupList = new DisposableList<IDisposable>())
-            {
-                var keysArray = NativeOnnxValueHelper.ConvertNamesToUtf8(providerOptions.Keys.ToArray(), n => n, cleanupList);
-                var valuesArray = NativeOnnxValueHelper.ConvertNamesToUtf8(providerOptions.Values.ToArray(), n => n, cleanupList);
-
-                NativeApiStatus.VerifySuccess(NativeMethods.OrtUpdateROCMProviderOptions(handle, keysArray, valuesArray, (UIntPtr)providerOptions.Count));
-            }
+            ProviderOptionsUpdater.Update(providerOptions, handle, UpdateROCMProviderOptions);
         }
 
         #endregion
