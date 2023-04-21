@@ -1232,9 +1232,6 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
             rel_pos_bias_node = node
             break
 
-    if rel_pos_bias_node is None:
-        return False
-
     decoder_masked_attention_supported_attr = [
         "past_present_share_buffer",
         "num_heads",
@@ -1243,8 +1240,24 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
         "domain",
     ]
 
+    #hacking
+    squeeze_node = onnx.helper.make_node(
+        "Squeeze",
+        ["past_sequence_length"],
+        ["past_sequence_length_squeezed"],
+        name="past_sequence_length_cast_squeeze"
+    )
+    cast_node = onnx.helper.make_node(
+        "Cast",
+        ["past_sequence_length_squeezed"],
+        ["/decoder/model/decoder/Gather_1_output_0"],
+        name="past_sequence_length_cast_renamed",
+        to=TensorProto.INT64,
+    )
+    new_nodes.extend([squeeze_node, cast_node])
+
     for node in subg.node:
-        if len(node.output) > 0 and node.output[0] == rel_pos_bias_node.input[1]:
+        if len(node.output) > 0 and rel_pos_bias_node is not None and node.output[0] == rel_pos_bias_node.input[1]:
             cast_node = onnx.helper.make_node(
                 "Cast",
                 ["past_sequence_length"],
@@ -1266,20 +1279,16 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
                 node.input[0],  # query
                 node.input[1],  # key
                 node.input[2],  # value
-                node.input[4],  # 2D mask
-                node.input[5],  # relative_position_bias
             ]
 
-            if len(node.input) > 6:
-                nis.extend([node.input[6]])  # past_key
-                nis.extend([node.input[7]])  # past_value
-            else:
-                nis.extend([""])  # past_key
-                nis.extend([""])  # past_value
-
-            nis.extend(["past_sequence_length"])  # past_sequence_length
-            nis.extend(["beam_width"])  # beam_width
-            nis.extend(["cache_indirection"])  # cache_indirection
+            nis.extend([node.input[4] if len(node.input) > 4 else ""])  # 2D mask
+            nis.extend([node.input[5] if len(node.input) > 5 else ""])  # relative_position_bias
+            nis.extend([node.input[6] if len(node.input) > 6 else ""])  # past_key
+            nis.extend([node.input[7] if len(node.input) > 7 else ""])  # past_value
+            nis.extend(["past_sequence_length"])                        # past_sequence_length
+            nis.extend(["beam_width"])                                  # beam_width
+            nis.extend(["cache_indirection"])                           # cache_indirection
+            nis.extend([node.input[3] if len(node.input) > 3 else ""])  # bias
 
             kwargs["past_present_share_buffer"] = 1
 
@@ -1287,10 +1296,12 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
                 "DecoderMaskedMultiHeadAttention", nis, node.output, name=node.name, **kwargs
             )
 
-        new_nodes.extend([node])
+        if node.name not in ["/decoder/model/decoder/Shape_1", "/decoder/model/decoder/Gather_1"]:
+            new_nodes.extend([node])
 
     subg.ClearField("node")
     subg.node.extend(new_nodes)
+    orig_input_names = [inp.name for inp in subg.input]
 
     new_inputs = []
     for i, vi in enumerate(subg.input):
@@ -1302,15 +1313,18 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
                 shape=[shape[0], shape[1], "max_seq_len", shape[3]],
             )
         new_inputs.extend([vi])
-    new_inputs.extend([onnx.helper.make_tensor_value_info("past_sequence_length", onnx.TensorProto.INT32, shape=[1])])
-    new_inputs.extend([onnx.helper.make_tensor_value_info("beam_width", onnx.TensorProto.INT32, shape=[1])])
-    new_inputs.extend(
-        [
-            onnx.helper.make_tensor_value_info(
-                "cache_indirection", onnx.TensorProto.INT32, shape=["batch_size", "beam_width", "max_seq_len"]
-            )
-        ]
-    )
+    if "past_sequence_length" not in orig_input_names:
+        new_inputs.extend([onnx.helper.make_tensor_value_info("past_sequence_length", onnx.TensorProto.INT32, shape=[1])])
+    if "beam_width" not in orig_input_names:
+        new_inputs.extend([onnx.helper.make_tensor_value_info("beam_width", onnx.TensorProto.INT32, shape=[1])])
+    if "cache_indirection" not in orig_input_names:
+        new_inputs.extend(
+            [
+                onnx.helper.make_tensor_value_info(
+                    "cache_indirection", onnx.TensorProto.INT32, shape=["batch_size", "beam_width", "max_seq_len"]
+                )
+            ]
+        )
     subg.ClearField("input")
     subg.input.extend(new_inputs)
 
