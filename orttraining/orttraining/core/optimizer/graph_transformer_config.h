@@ -27,6 +27,9 @@ struct TrainingGraphTransformerConfiguration : public GraphTransformerConfigurat
 
   // Enable label sparsity compute optimization.
   bool enable_label_sparsity_optimization{false};
+
+  // Enable embedding sparsity compute optimization.
+  bool enable_embedding_sparsity_optimization{false};
 };
 
 }  // namespace training

@@ -10,6 +10,7 @@
 #include "core/optimizer/bias_softmax_fusion.h"
 #include "core/optimizer/cast_elimination.h"
 #include "core/optimizer/common_subexpression_elimination.h"
+#include "core/optimizer/padding_elimination.h"
 #include "core/optimizer/compute_optimizer/upstream_gather.h"
 #include "core/optimizer/compute_optimizer/upstream_reshape.h"
 #include "core/optimizer/concat_slice_elimination.h"
@@ -167,6 +168,9 @@ std::vector<std::unique_ptr<GraphTransformer>> GeneratePreTrainingTransformers(
         if (config.enable_label_sparsity_optimization) {
           transformers.emplace_back(std::make_unique<UpStreamReshapeGraphTransformer>(compatible_eps));
           transformers.emplace_back(std::make_unique<InsertGatherBeforeSceLoss>(compatible_eps));
+        }
+        if (config.enable_embedding_sparsity_optimization) {
+          transformers.emplace_back(std::make_unique<PaddingElimination>(compatible_eps));
         }
       }
 

@@ -23,6 +23,7 @@ import torch
 from packaging.version import Version
 
 # Import autocasting libs
+from torch import nn
 from torch.cuda import amp
 from transformers import AdamW, AutoConfig, BertForSequenceClassification, Trainer
 from transformers.modeling_outputs import SequenceClassifierOutput
@@ -5672,3 +5673,78 @@ def test_gradient_correctness_bce_with_logits():
 
         _test_helpers.assert_values_are_close(ort_prediction, pt_prediction)
         _test_helpers.assert_values_are_close(ort_input.grad, pt_input.grad)
+
+def test_padding_elimination():
+    class OneLayer(torch.nn.Module):
+        def __init__(self, hidden_size, num_attention_heads):
+            super().__init__()
+            self.num_attention_heads = num_attention_heads
+            self.attention_head_size = int(hidden_size / num_attention_heads)
+            self.all_head_size = num_attention_heads * self.attention_head_size
+            self.query = nn.Linear(hidden_size, self.all_head_size)
+            self.key = nn.Linear(hidden_size, self.all_head_size)
+            self.value = nn.Linear(hidden_size, self.all_head_size)
+            self.dropout1 = nn.Dropout(0.0)
+            self.dense = nn.Linear(hidden_size, hidden_size)
+            self.LayerNorm = nn.LayerNorm(hidden_size, eps=1e-05)
+            self.dropout2 = nn.Dropout(0.0)
+
+        def transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
+            new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+            x = x.view(new_x_shape)
+            return x.permute(0, 2, 1, 3)
+
+        def forward(self, hidden_states):
+            query_layer = self.transpose_for_scores(self.query(hidden_states))
+            key_layer = self.transpose_for_scores(self.key(hidden_states))
+            value_layer = self.transpose_for_scores(self.value(hidden_states))
+            attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+            attention_scores = attention_scores / math.sqrt(self.attention_head_size)
+            attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+            attention_probs = self.dropout1(attention_probs)
+            context_layer = torch.matmul(attention_probs, value_layer)
+            context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
+            new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
+            context_layer = context_layer.view(new_context_layer_shape)
+
+            output = self.dense(context_layer)
+            output = self.dropout2(output)
+            output = self.LayerNorm(output + hidden_states)
+            return output
+
+    class ToyModel(torch.nn.Module):
+        def __init__(self, num_hidden_layers, vocab_size, hidden_size, num_attention_heads, pad_token_id):
+            super().__init__()
+            self.word_embeddings = nn.Embedding(vocab_size, hidden_size, padding_idx=pad_token_id)
+            self.token_type_embeddings = nn.Embedding(1, hidden_size)
+            self.LayerNorm = nn.LayerNorm(hidden_size, eps=1e-05)
+            self.dropout = nn.Dropout(0.0)
+            self.layer = nn.ModuleList([OneLayer(hidden_size, num_attention_heads) for _ in range(num_hidden_layers)])
+
+        def forward(self, input_ids):
+            input_shape = input_ids.size()
+            token_type_ids = torch.zeros(input_shape, dtype=torch.long).to(device)
+            inputs_embeds = self.word_embeddings(input_ids)
+            token_type_embeddings = self.token_type_embeddings(token_type_ids)
+            embeddings = inputs_embeds + token_type_embeddings
+            embeddings = self.LayerNorm(embeddings)
+            hidden_states = self.dropout(embeddings)
+            for i, layer_module in enumerate(self.layer):
+                hidden_states = layer_module(hidden_states)
+            return hidden_states
+
+    num_layers, vocab_size, hidden_size, num_attention_heads = 2, 50265, 768, 12
+    device = "cuda"
+    pt_model = ToyModel(num_layers, vocab_size, hidden_size, num_attention_heads, 1).to(device)
+    ort_model = ORTModule(copy.deepcopy(pt_model), DebugOptions(save_onnx=True, onnx_prefix="roberta", log_level=LogLevel.VERBOSE))
+
+    batch_size, seqlen = 8, 100
+    pt_input = torch.randint(vocab_size, (batch_size, seqlen), device=device)
+    ort_input = copy.deepcopy(pt_input)
+    pt_output = pt_model(pt_input)
+    ort_output = ort_model(ort_input)
+    _test_helpers.assert_values_are_close(pt_output, ort_output)
+    pt_loss = pt_output.sum()
+    ort_loss = ort_output.sum()
+    pt_loss.backward()
+    ort_loss.backward()
