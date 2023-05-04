@@ -66,7 +66,6 @@ TEST(GemmOpTest, GemmNoTrans_f16) {
       .RunWithConfig();
 }
 
-
 #if defined(USE_CUDA) || defined(USE_ROCM) || defined(USE_DNNL)
 TEST(GemmOpTest, GemmNoTrans_bfloat16) {
 #ifdef USE_CUDA
@@ -625,10 +624,10 @@ TYPED_TEST(GemmOpTypedTests, TestGemm2DBroadcast_1) {
   test.AddAttribute("transB", (int64_t)0);
   test.AddAttribute("alpha", 1.0f);
   test.AddAttribute("beta", 1.0f);
+  std::array<ValueType, 8> a_data{static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
+                                  static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)};
 
-  test.AddInput<ValueType>("A", {2, 4},
-                           {static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
-                            static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)});
+  test.AddInput<ValueType>("A", {2, 4}, a_data.data(), a_data.size());
   test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)));
   test.AddInput<ValueType>("C", {2, 1}, std::vector<ValueType>{static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f)});
   test.AddOutput<ValueType>("Y", {2, 3},
@@ -647,9 +646,10 @@ TYPED_TEST(GemmOpTypedTests, TestGemmNoTrans) {
     test.AddAttribute("alpha", 1.0f);
     test.AddAttribute("beta", 1.0f);
 
-    test.AddInput<ValueType>("A", {2, 4},
-                             {static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
-                              static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)});
+    std::array<ValueType, 8> a_data{static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
+                                    static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)};
+
+    test.AddInput<ValueType>("A", {2, 4}, a_data.data(), a_data.size());
     test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)), b_is_initializer);
     test.AddInput<ValueType>("C", {2, 3}, std::vector<ValueType>(6, static_cast<ValueType>(1.0f)), c_is_initializer);
     test.AddOutput<ValueType>("Y", {2, 3},
