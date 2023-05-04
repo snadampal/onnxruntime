@@ -584,8 +584,7 @@ TEST(GemmOpTest, GemmFalseBroadcast_2_bfloat16) {
 
 template <typename T>
 class GemmOpTypedTests : public ::testing::Test {
- protected:
-  using ValueType = T;
+
 };
 
 using GemmOpTypedTestsTypes = ::testing::Types<float, double, MLFloat16>;
@@ -599,14 +598,14 @@ TYPED_TEST(GemmOpTypedTests, TestGemmAlphaBeta) {
   test.AddAttribute("alpha", 0.5f);
   test.AddAttribute("beta", 2.0f);
 
-  test.AddInput<ValueType>("A", {2, 4},
-                           {static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
-                            static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)});
-  test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)));
-  test.AddInput<ValueType>("C", {3}, std::vector<ValueType>(3, static_cast<ValueType>(1.0f)));
-  test.AddOutput<ValueType>("Y", {2, 3},
-                            {static_cast<ValueType>(7.0f), static_cast<ValueType>(7.0f), static_cast<ValueType>(7.0f),
-                             static_cast<ValueType>(-3.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-3.0f)});
+  test.AddInput<TypeParam>("A", {2, 4},
+                           {static_cast<TypeParam>(1.0f), static_cast<TypeParam>(2.0f), static_cast<TypeParam>(3.0f), static_cast<TypeParam>(4.0f),
+                            static_cast<TypeParam>(-1.0f), static_cast<TypeParam>(-2.0f), static_cast<TypeParam>(-3.0f), static_cast<TypeParam>(-4.0f)});
+  test.AddInput<TypeParam>("B", {4, 3}, std::vector<TypeParam>(12, static_cast<TypeParam>(1.0f)));
+  test.AddInput<TypeParam>("C", {3}, std::vector<TypeParam>(3, static_cast<TypeParam>(1.0f)));
+  test.AddOutput<TypeParam>("Y", {2, 3},
+                            {static_cast<TypeParam>(7.0f), static_cast<TypeParam>(7.0f), static_cast<TypeParam>(7.0f),
+                             static_cast<TypeParam>(-3.0f), static_cast<TypeParam>(-3.0f), static_cast<TypeParam>(-3.0f)});
 #if defined(OPENVINO_CONFIG_GPU_FP16) || defined(OPENVINO_CONFIG_GPU_FP32)
   test.ConfigExcludeEps({kOpenVINOExecutionProvider});  // OpenVINO: Temporarily disabled due to accuracy issues
 #else
@@ -624,15 +623,15 @@ TYPED_TEST(GemmOpTypedTests, TestGemm2DBroadcast_1) {
   test.AddAttribute("transB", (int64_t)0);
   test.AddAttribute("alpha", 1.0f);
   test.AddAttribute("beta", 1.0f);
-  std::array<ValueType, 8> a_data{static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
-                                  static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)};
+  std::array<TypeParam, 8> a_data{static_cast<TypeParam>(1.0f), static_cast<TypeParam>(2.0f), static_cast<TypeParam>(3.0f), static_cast<TypeParam>(4.0f),
+                                  static_cast<TypeParam>(-1.0f), static_cast<TypeParam>(-2.0f), static_cast<TypeParam>(-3.0f), static_cast<TypeParam>(-4.0f)};
 
-  test.AddInput<ValueType>("A", {2, 4}, a_data.data(), a_data.size());
-  test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)));
-  test.AddInput<ValueType>("C", {2, 1}, std::vector<ValueType>{static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f)});
-  test.AddOutput<ValueType>("Y", {2, 3},
-                            {static_cast<ValueType>(11.0f), static_cast<ValueType>(11.0f), static_cast<ValueType>(11.0f),
-                             static_cast<ValueType>(-8.0f), static_cast<ValueType>(-8.0f), static_cast<ValueType>(-8.0f)});
+  test.AddInput<TypeParam>("A", {2, 4}, a_data.data(), a_data.size());
+  test.AddInput<TypeParam>("B", {4, 3}, std::vector<TypeParam>(12, static_cast<TypeParam>(1.0f)));
+  test.AddInput<TypeParam>("C", {2, 1}, std::vector<TypeParam>{static_cast<TypeParam>(1.0f), static_cast<TypeParam>(2.0f)});
+  test.AddOutput<TypeParam>("Y", {2, 3},
+                            {static_cast<TypeParam>(11.0f), static_cast<TypeParam>(11.0f), static_cast<TypeParam>(11.0f),
+                             static_cast<TypeParam>(-8.0f), static_cast<TypeParam>(-8.0f), static_cast<TypeParam>(-8.0f)});
   test.Config(run_with_tunable_op)
       .RunWithConfig();
 }
@@ -646,15 +645,15 @@ TYPED_TEST(GemmOpTypedTests, TestGemmNoTrans) {
     test.AddAttribute("alpha", 1.0f);
     test.AddAttribute("beta", 1.0f);
 
-    std::array<ValueType, 8> a_data{static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
-                                    static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)};
+    std::array<TypeParam, 8> a_data{static_cast<TypeParam>(1.0f), static_cast<TypeParam>(2.0f), static_cast<TypeParam>(3.0f), static_cast<TypeParam>(4.0f),
+                                    static_cast<TypeParam>(-1.0f), static_cast<TypeParam>(-2.0f), static_cast<TypeParam>(-3.0f), static_cast<TypeParam>(-4.0f)};
 
-    test.AddInput<ValueType>("A", {2, 4}, a_data.data(), a_data.size());
-    test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)), b_is_initializer);
-    test.AddInput<ValueType>("C", {2, 3}, std::vector<ValueType>(6, static_cast<ValueType>(1.0f)), c_is_initializer);
-    test.AddOutput<ValueType>("Y", {2, 3},
-                              {static_cast<ValueType>(11.0f), static_cast<ValueType>(11.0f), static_cast<ValueType>(11.0f),
-                               static_cast<ValueType>(-9.0f), static_cast<ValueType>(-9.0f), static_cast<ValueType>(-9.0f)});
+    test.AddInput<TypeParam>("A", {2, 4}, a_data.data(), a_data.size());
+    test.AddInput<TypeParam>("B", {4, 3}, std::vector<TypeParam>(12, static_cast<TypeParam>(1.0f)), b_is_initializer);
+    test.AddInput<TypeParam>("C", {2, 3}, std::vector<TypeParam>(6, static_cast<TypeParam>(1.0f)), c_is_initializer);
+    test.AddOutput<TypeParam>("Y", {2, 3},
+                              {static_cast<TypeParam>(11.0f), static_cast<TypeParam>(11.0f), static_cast<TypeParam>(11.0f),
+                               static_cast<TypeParam>(-9.0f), static_cast<TypeParam>(-9.0f), static_cast<TypeParam>(-9.0f)});
     test.Config(run_with_tunable_op)
         .RunWithConfig();
   };
@@ -673,11 +672,11 @@ TYPED_TEST(GemmOpTypedTests, GemmEmptyTensor) {
   test.AddAttribute("alpha", 1.0f);
   test.AddAttribute("beta", 1.0f);
 
-  test.AddInput<ValueType>("A", {0, 4},
+  test.AddInput<TypeParam>("A", {0, 4},
                            {});
-  test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)));
-  test.AddInput<ValueType>("C", {3}, std::vector<ValueType>(3, static_cast<ValueType>(1.0f)));
-  test.AddOutput<ValueType>("Y", {0, 3},
+  test.AddInput<TypeParam>("B", {4, 3}, std::vector<TypeParam>(12, static_cast<TypeParam>(1.0f)));
+  test.AddInput<TypeParam>("C", {3}, std::vector<TypeParam>(3, static_cast<TypeParam>(1.0f)));
+  test.AddOutput<TypeParam>("Y", {0, 3},
                             {});
   // TensorRT: doesn't support dynamic shape yet
   test.ConfigExcludeEps({kTensorrtExecutionProvider, kDnnlExecutionProvider, kQnnExecutionProvider})
@@ -692,13 +691,13 @@ TYPED_TEST(GemmOpTypedTests, MissingBias) {
   test.AddAttribute("alpha", 1.0f);
   test.AddAttribute("beta", 1.0f);
 
-  test.AddInput<ValueType>("A", {2, 4},
-                           {static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f),
-                            static_cast<ValueType>(-1.0f), static_cast<ValueType>(-2.0f), static_cast<ValueType>(-3.0f), static_cast<ValueType>(-4.0f)});
-  test.AddInput<ValueType>("B", {4, 3}, std::vector<ValueType>(12, static_cast<ValueType>(1.0f)));
-  test.AddOutput<ValueType>("Y", {2, 3},
-                            {static_cast<ValueType>(10.0f), static_cast<ValueType>(10.0f), static_cast<ValueType>(10.0f),
-                             static_cast<ValueType>(-10.0f), static_cast<ValueType>(-10.0f), static_cast<ValueType>(-10.0f)});
+  test.AddInput<TypeParam>("A", {2, 4},
+                           {static_cast<TypeParam>(1.0f), static_cast<TypeParam>(2.0f), static_cast<TypeParam>(3.0f), static_cast<TypeParam>(4.0f),
+                            static_cast<TypeParam>(-1.0f), static_cast<TypeParam>(-2.0f), static_cast<TypeParam>(-3.0f), static_cast<TypeParam>(-4.0f)});
+  test.AddInput<TypeParam>("B", {4, 3}, std::vector<TypeParam>(12, static_cast<TypeParam>(1.0f)));
+  test.AddOutput<TypeParam>("Y", {2, 3},
+                            {static_cast<TypeParam>(10.0f), static_cast<TypeParam>(10.0f), static_cast<TypeParam>(10.0f),
+                             static_cast<TypeParam>(-10.0f), static_cast<TypeParam>(-10.0f), static_cast<TypeParam>(-10.0f)});
   // tensorRT don't seem to support missing bias
   std::unordered_set<std::string> excluded_provider_types{kTensorrtExecutionProvider};
   // QNN Linux result diff 0.011714935302734375 exceed the threshold
@@ -715,11 +714,11 @@ TYPED_TEST(GemmOpTypedTests, TestGemmWithAlphaOpset11) {
 
   test.AddAttribute("alpha", 2.0f);
 
-  test.AddInput<ValueType>("A", {2, 2},
-                           {static_cast<ValueType>(1.0f), static_cast<ValueType>(2.0f), static_cast<ValueType>(3.0f), static_cast<ValueType>(4.0f)});
-  test.AddInput<ValueType>("B", {2, 2}, std::vector<ValueType>(4, static_cast<ValueType>(1.0f)));
-  test.AddOutput<ValueType>("Y", {2, 2},
-                            {static_cast<ValueType>(6.0f), static_cast<ValueType>(6.0f), static_cast<ValueType>(14.0f), static_cast<ValueType>(14.0f)});
+  test.AddInput<TypeParam>("A", {2, 2},
+                           {static_cast<TypeParam>(1.0f), static_cast<TypeParam>(2.0f), static_cast<TypeParam>(3.0f), static_cast<TypeParam>(4.0f)});
+  test.AddInput<TypeParam>("B", {2, 2}, std::vector<TypeParam>(4, static_cast<TypeParam>(1.0f)));
+  test.AddOutput<TypeParam>("Y", {2, 2},
+                            {static_cast<TypeParam>(6.0f), static_cast<TypeParam>(6.0f), static_cast<TypeParam>(14.0f), static_cast<TypeParam>(14.0f)});
   // tensorRT don't seem to support missing bias
   test.ConfigExcludeEps({kTensorrtExecutionProvider})
       .Config(run_with_tunable_op)

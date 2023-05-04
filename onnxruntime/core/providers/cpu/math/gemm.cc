@@ -221,7 +221,7 @@ void Gemm<MLFloat16>::ComputeGemm(CBLAS_TRANSPOSE trans_a, CBLAS_TRANSPOSE trans
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif
-  math::Gemm(trans_a, trans_b, M, N, K, *reinterpret_cast<Eigen::half*>(&alpha),
+  math::Gemm<Eigen::half>(trans_a, trans_b, M, N, K, *reinterpret_cast<Eigen::half*>(&alpha),
              reinterpret_cast<const Eigen::half*>(a_data), reinterpret_cast<const Eigen::half*>(b_data), *reinterpret_cast<Eigen::half*>(&beta), reinterpret_cast<Eigen::half*>(y_data), thread_pool);
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
