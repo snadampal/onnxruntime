@@ -194,7 +194,7 @@ void Gemm<MLFloat16>::ComputeGemm(CBLAS_TRANSPOSE trans_a, CBLAS_TRANSPOSE trans
 #endif
 #ifdef MLAS_F16VEC_INTRINSICS_SUPPORTED
   bool support_mlas = false;
-  if (c_shape == nullptr || c_shape->NumDimensions() == 1 && (*c_shape)[0] == N || c_shape->NumDimensions() == 2 && ((*c_shape)[0] == 1 && (*c_shape)[1] == N || (*c_shape)[0] == N && (*c_shape)[1] == 1)) {
+  if (c_shape == nullptr || (c_shape->NumDimensions() == 1 && (*c_shape)[0] == N) || (c_shape->NumDimensions() == 2 && ((*c_shape)[0] == 1 && (*c_shape)[1] == N) || ((*c_shape)[0] == N && (*c_shape)[1] == 1))) {
     support_mlas = true;
   }
   if (trans_a == CblasNoTrans && trans_b == CblasNoTrans && support_mlas && alpha.ToFloat() == 1.0 && beta.ToFloat() == 1.0) {
