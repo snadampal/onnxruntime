@@ -4202,7 +4202,7 @@ struct OrtApi {
    *
    * \snippet{doc} snippets.dox OrtStatus Return Value
    *
-   * \since Version 1.15.
+   * \since Version 1.16.
    */
   ORT_API2_STATUS(CreateROCMProviderOptions, _Outptr_ OrtROCMProviderOptions** out);
 
@@ -4221,7 +4221,7 @@ struct OrtApi {
    *
    * \snippet{doc} snippets.dox OrtStatus Return Value
    *
-   * \since Version 1.15.
+   * \since Version 1.16.
    */
   ORT_API2_STATUS(UpdateROCMProviderOptions, _Inout_ OrtROCMProviderOptions* rocm_options,
                   _In_reads_(num_keys) const char* const* provider_options_keys,
@@ -4240,7 +4240,7 @@ struct OrtApi {
    *
    * \snippet{doc} snippets.dox OrtStatus Return Value
    *
-   * \since Version 1.15.
+   * \since Version 1.16.
    */
   ORT_API2_STATUS(GetROCMProviderOptionsAsString, _In_ const OrtROCMProviderOptions* rocm_options, _Inout_ OrtAllocator* allocator, _Outptr_ char** ptr);
 
@@ -4248,7 +4248,7 @@ struct OrtApi {
    *
    * \note This is an exception in the naming convention of other Release* functions, as the name of the method does not have the V2 suffix, but the type does
    *
-   * \since Version 1.15.
+   * \since Version 1.16.
    */
   void(ORT_API_CALL* ReleaseROCMProviderOptions)(_Frees_ptr_opt_ OrtROCMProviderOptions* input);
 
