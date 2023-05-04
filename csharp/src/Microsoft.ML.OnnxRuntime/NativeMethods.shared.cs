@@ -286,6 +286,7 @@ namespace Microsoft.ML.OnnxRuntime
         public IntPtr CastTypeInfoToOptionalTypeInfo;
         public IntPtr GetOptionalContainedTypeInfo;
         public IntPtr GetResizedStringTensorElementBuffer;
+        public IntPtr KernelContext_GetAllocator;
         public IntPtr CreateROCMProviderOptions;
         public IntPtr UpdateROCMProviderOptions;
         public IntPtr GetROCMProviderOptionsAsString;
