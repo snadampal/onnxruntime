@@ -14,6 +14,7 @@ class GemmHelper {
  public:
   static Status Create(const TensorShape& left, bool trans_left, const TensorShape& right, bool trans_right, const TensorShape& bias,
                        std::unique_ptr<GemmHelper>& out) {
+    GSL_SUPPRESS(r.11)
     out = std::unique_ptr<GemmHelper>(new GemmHelper());
     // dimension check
     if (left.NumDimensions() != 2 && left.NumDimensions() != 1) {
