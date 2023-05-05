@@ -60,6 +60,7 @@ struct CheckpointState {
 Status SaveCheckpoint(CheckpointState& state, const PathString& checkpoint_path,
                       const bool include_optimizer_state);
 
+#if !defined(ORT_MINIMAL_BUILD)
 /**
  * @brief Save ONNX initializers as ORT checkpoint.
  *
@@ -71,6 +72,7 @@ Status SaveCheckpoint(CheckpointState& state, const PathString& checkpoint_path,
 Status SaveCheckpoint(const std::vector<ONNX_NAMESPACE::TensorProto>& trainable_tensor_protos,
                       const std::vector<ONNX_NAMESPACE::TensorProto>& non_trainable_tensor_protos,
                       const PathString& checkpoint_path);
+#endif
 
 /**
  * @brief Load training states from ORT checkpoint.
@@ -82,6 +84,7 @@ Status SaveCheckpoint(const std::vector<ONNX_NAMESPACE::TensorProto>& trainable_
 Status LoadCheckpoint(const PathString& checkpoint_path,
                       CheckpointState& checkpoint_state);
 
+#if !defined(ORT_MINIMAL_BUILD)
 /**
  * @brief Load training states from ORT checkpoint into a ModelProto.
  * @param checkpoint_path folder where checkpoint is stored.
@@ -90,6 +93,7 @@ Status LoadCheckpoint(const PathString& checkpoint_path,
  */
 Status LoadCheckpointToModel(const PathString& checkpoint_path,
                              ONNX_NAMESPACE::ModelProto& model_proto);
+#endif
 
 }  // namespace api
 }  // namespace training

@@ -364,6 +364,7 @@ if (onnxruntime_USE_CANN)
   list(APPEND onnxruntime_test_providers_src ${onnxruntime_test_providers_cann_src})
 endif()
 
+if (NOT onnxruntime_MINIMAL_BUILD OR onnxruntime_EXTENDED_MINIMAL_BUILD)
 if (onnxruntime_ENABLE_TRAINING_APIS)
   file(GLOB_RECURSE orttraining_test_trainingops_cpu_src CONFIGURE_DEPENDS
     "${ORTTRAINING_SOURCE_DIR}/test/training_ops/compare_provider_test_utils.cc"
@@ -385,6 +386,7 @@ if (onnxruntime_ENABLE_TRAINING_APIS)
       )
     list(APPEND onnxruntime_test_providers_src ${orttraining_test_trainingops_cuda_src})
   endif()
+endif()
 endif()
 
 if (onnxruntime_USE_DNNL)
@@ -579,8 +581,10 @@ set(ONNXRUNTIME_TEST_LIBS
     onnxruntime_flatbuffers
 )
 
+if(NOT (onnxruntime_MINIMAL_BUILD OR onnxruntime_EXTENDED_MINIMAL_BUILD))
 if (onnxruntime_ENABLE_TRAINING)
   set(ONNXRUNTIME_TEST_LIBS onnxruntime_training_runner onnxruntime_training ${ONNXRUNTIME_TEST_LIBS})
+endif()
 endif()
 
 set(onnxruntime_test_providers_libs
@@ -749,12 +753,14 @@ endif()
 
 set(all_dependencies ${onnxruntime_test_providers_dependencies} )
 
+if(NOT (onnxruntime_MINIMAL_BUILD OR onnxruntime_EXTENDED_MINIMAL_BUILD))
 if (onnxruntime_ENABLE_TRAINING)
   list(APPEND all_tests ${onnxruntime_test_training_src})
 endif()
 
 if (onnxruntime_ENABLE_TRAINING_APIS)
     list(APPEND all_tests ${onnxruntime_test_training_api_src})
+endif()
 endif()
 
 if (onnxruntime_USE_TVM)
@@ -1033,6 +1039,7 @@ install(TARGETS onnx_test_runner
         BUNDLE   DESTINATION ${CMAKE_INSTALL_LIBDIR}
         RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+if(NOT (onnxruntime_MINIMAL_BUILD OR onnxruntime_EXTENDED_MINIMAL_BUILD))
 if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
   if(onnxruntime_BUILD_BENCHMARKS)
     SET(BENCHMARK_DIR ${TEST_SRC_DIR}/onnx/microbenchmark)
@@ -1411,6 +1418,7 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
     )
     set_target_properties(onnxruntime_test_trainer PROPERTIES FOLDER "ONNXRuntimeTest")
   endif()
+endif()
 endif()
 
 if (NOT onnxruntime_BUILD_WEBASSEMBLY)

@@ -31,7 +31,9 @@ struct PropertyBag {
     named_properties_.insert({name, val});
   }
 
+#if !defined(ORT_MINIMAL_BUILD)
   void AddProperty(const ONNX_NAMESPACE::TensorProto& tensor_proto);
+#endif
 
   template <typename T>
   T GetProperty(const std::string& name) const {
@@ -43,6 +45,7 @@ struct PropertyBag {
     return *tval;
   }
 
+#if !defined(ORT_MINIMAL_BUILD)
   void ToTensorProtos(std::vector<ONNX_NAMESPACE::TensorProto>& properties_tensor_protos) const {
     for (auto it = named_properties_.begin(); it != named_properties_.end(); ++it) {
       onnx::TensorProto t_proto;
@@ -59,6 +62,7 @@ struct PropertyBag {
       properties_tensor_protos.emplace_back(t_proto);
     }
   }
+#endif
 
   size_t Size() const {
     return named_properties_.size();
@@ -69,6 +73,7 @@ struct PropertyBag {
   }
 
  private:
+#if !defined(ORT_MINIMAL_BUILD)
   const InlinedVector<int32_t> supported_data_types{
       ONNX_NAMESPACE::TensorProto::FLOAT,
       ONNX_NAMESPACE::TensorProto::INT64,
@@ -77,6 +82,7 @@ struct PropertyBag {
   bool IsSupportedDataType(int32_t data_type) const {
     return std::find(supported_data_types.begin(), supported_data_types.end(), data_type) != supported_data_types.end();
   }
+#endif
 
   InlinedHashMap<std::string, PropertyDataType> named_properties_;
 };

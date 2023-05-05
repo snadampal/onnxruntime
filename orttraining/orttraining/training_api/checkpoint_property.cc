@@ -12,6 +12,7 @@ namespace onnxruntime {
 namespace training {
 namespace api {
 
+#if !defined(ORT_MINIMAL_BUILD)
 namespace {
 
 template <typename T>
@@ -60,6 +61,7 @@ void PropertyBag::AddProperty(const ONNX_NAMESPACE::TensorProto& tensor_proto) {
 
   named_properties_.insert({prop_name, prop_value});
 }
+#endif
 
 }  // namespace api
 }  // namespace training

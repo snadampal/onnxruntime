@@ -25,6 +25,7 @@ namespace {
 // TODO: consolidate with frontend tooling
 const std::string ACCUMULATE_GRAD_CONTROL_INPUT_NAME{"lazy_reset_grad"};
 
+#if !defined(ORT_MINIMAL_BUILD)
 std::unordered_set<const Node*> GetReverseReachableNodes(Graph& inference_graph,
                                                          InlinedVector<const NodeArg*>& output_node_args) {
   // Perform a graph traversal from the graph outputs to collect all reachable nodes from the outputs
@@ -116,7 +117,7 @@ Status TransformModelInputsForInference(Graph& inference_graph,
 
   return Status::OK();
 }
-
+#endif
 }  // namespace
 
 Status Parameter::SetGrad(const std::string& gradient_name, const OrtValue& param_grad) {
@@ -472,6 +473,7 @@ Status Module::EvalStep(const std::vector<OrtValue>& inputs, std::vector<OrtValu
 
 Status Module::ExportModelForInferencing(const std::string& inference_model_path,
                                          gsl::span<const std::string> graph_output_names) const {
+#if !defined(ORT_MINIMAL_BUILD)
   ORT_RETURN_IF(!eval_sess_ || eval_model_path_.empty(),
                 "Eval model was not provided. Cannot export a model for inferencing.");
 
@@ -493,7 +495,11 @@ Status Module::ExportModelForInferencing(const std::string& inference_model_path
 
   // Save the model at the desired location.
   ORT_THROW_IF_ERROR(Model::Save(*inference_model, inference_model_path));
-
+#else
+  ORT_UNUSED_PARAMETER(inference_model_path);
+  ORT_UNUSED_PARAMETER(graph_output_names);
+  // TODO (baijumeswani): Load and save using ort format
+#endif
   return Status::OK();
 }
 
