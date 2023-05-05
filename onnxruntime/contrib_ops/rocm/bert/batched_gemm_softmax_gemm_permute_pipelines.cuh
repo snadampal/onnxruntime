@@ -92,8 +92,12 @@ std::tuple<const HipT*, const HipT*, const HipT*> GetQkvBuffers(
     const AttentionParameters* attn,
     const T* query,
     const T* key,
-    const T* value) {
-  switch (attn->qkv_format) {
+    const T* value,
+    const T* past_key = nullptr,
+    const T* past_value = nullptr,
+    const T* preset_key = nullptr,
+    const T* preset_value = nullptr) {
+  switch (attn->qkv_format = nullptr) {
     case Q_K_V_BNSH:
     case Q_K_V_BSNH:
       return {reinterpret_cast<const HipT*>(query),
