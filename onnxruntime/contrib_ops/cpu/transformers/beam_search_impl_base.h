@@ -57,7 +57,6 @@ struct BeamSearchState : public IBeamSearchState<T> {
       // We need a temp staging buffer to do the past 'K' state re-ordering that is needed
       // when using DecoderMaskedSelfAttention
       TensorShape staging_for_past_state_reorder_buffer_shape = {static_cast<int64_t>(batch_beam_size), num_heads, max_length, head_size};
-      staging_past_state_reorder_buffer_size_ = staging_for_past_state_reorder_buffer_shape.Size();
       Tensor temp(DataTypeImpl::GetType<T>(), staging_for_past_state_reorder_buffer_shape, allocator);
 
       this->staging_for_past_state_reorder = std::move(temp);
@@ -70,10 +69,10 @@ struct BeamSearchState : public IBeamSearchState<T> {
   }
 
   void EnsurePastStateReorderStagingBuffer(AllocatorPtr allocator, int64_t sz) {
-    if (sz > staging_past_state_reorder_buffer_size_) {
+    auto current_buffer_size = this->staging_for_past_state_reorder.Shape().Size();
+    if (sz > current_buffer_size) {
       TensorShape buffer_shape = {sz};
       this->staging_for_past_state_reorder = Tensor(DataTypeImpl::GetType<T>(), buffer_shape, allocator);
-      staging_past_state_reorder_buffer_size_ = sz;
     }
   }
 
@@ -88,7 +87,6 @@ struct BeamSearchState : public IBeamSearchState<T> {
   BufferUniquePtr scores_buffer_;
   BufferUniquePtr topk_temp_buffer_;
   BufferUniquePtr chosen_indices_buffer_;
-  int64_t staging_past_state_reorder_buffer_size_ = 0LL;
 };
 
 struct BeamSearchCpuState : public IBeamSearchCpuState {

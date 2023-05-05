@@ -128,8 +128,7 @@ class BartOnnxModel(BertOnnxModel):
         self.bart_reshape_fusion_preprocess = FusionBartReshape(self)
 
     def optimize(self, options: Optional[FusionOptions] = None, add_dynamic_axes: bool = False):
-        if options is not None:
-            self.attention_fusion.use_multi_head_attention = options.use_multi_head_attention
+        self.attention_fusion.use_multi_head_attention = False if options is None else options.use_multi_head_attention
         super().optimize(options, add_dynamic_axes)
 
     def fuse_attention(self):

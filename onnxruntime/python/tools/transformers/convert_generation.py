@@ -1206,6 +1206,58 @@ def update_decoder_subgraph_use_decoder_masked_attention(
 
     return True
 
+def find_past_seq_len_usage(subg: GraphProto):
+    """Correct graph which originally use dim of past_seq_len from input_ids's shape which is fixed to max_seq_len after
+       shared past/present buffer
+
+    Args:
+        subg (GraphProto): GraphProto of the decoder subgraph
+    return:
+        tensor_names_to_rename : set of tensor names which is equal to past_sequence_length
+        nodes_to_remove : list of node to remove
+    """
+    tensor_names_to_rename = set()
+    nodes_to_remove = []
+
+    graph_intput_names = {inp.name : index for index, inp in enumerate(subg.input)}
+
+    input_name_to_nodes = {}
+    output_name_to_node = {}
+    for node in subg.node:
+        for input_name in node.input:
+            if input_name:
+                if input_name not in input_name_to_nodes:
+                    input_name_to_nodes[input_name] = [node]
+                else:
+                    input_name_to_nodes[input_name].append(node)
+        for output_name in node.output:
+            if output_name:
+                output_name_to_node[output_name] = node
+
+    for node in subg.node:
+        # find "Shape(past_key_self..) --> Gather(*, 2)"
+        if node.op_type == "Gather":
+            if not node.input[1] or not node.input[0]:
+                continue
+            shape_tensor_name, shape_index_name = (node.input[0], node.input[1])
+            ini_gather_indices = None
+            for tensor in subg.initializer:
+                if tensor.name == shape_index_name:
+                    ini_gather_indices = tensor
+                    break
+            if ini_gather_indices is None:
+                continue
+            gather_indices_arr = onnx.numpy_helper.to_array(ini_gather_indices)
+            if gather_indices_arr.size == 1 and gather_indices_arr.item() == 2 and node.input[0] in output_name_to_node:
+                shape_node = output_name_to_node[shape_tensor_name]
+                if (shape_node.op_type == 'Shape' and
+                        shape_node.input[0] and shape_node.input[0] in graph_intput_names and
+                        (shape_node.input[0].startswith("past_key_self_") or shape_node.input[0].startswith("past_value_self_"))):
+                    tensor_names_to_rename.add(node.output[0])
+                    nodes_to_remove.append(node)
+                    if len(input_name_to_nodes[shape_node.output[0]]) == 1:
+                        nodes_to_remove.append(shape_node)
+    return tensor_names_to_rename, nodes_to_remove
 
 def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphProto):
     input_self_past_0 = 2
@@ -1240,21 +1292,24 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
         "domain",
     ]
 
-    #hacking
-    squeeze_node = onnx.helper.make_node(
-        "Squeeze",
-        ["past_sequence_length"],
-        ["past_sequence_length_squeezed"],
-        name="past_sequence_length_cast_squeeze"
-    )
-    cast_node = onnx.helper.make_node(
-        "Cast",
-        ["past_sequence_length_squeezed"],
-        ["/decoder/model/decoder/Gather_1_output_0"],
-        name="past_sequence_length_cast_renamed",
-        to=TensorProto.INT64,
-    )
-    new_nodes.extend([squeeze_node, cast_node])
+    target_squeezed_past_seq_name = "past_sequence_length_squeezed_int64"
+    tensor_names_to_rename, nodes_to_remove = find_past_seq_len_usage(subg)
+    if len(tensor_names_to_rename) > 0:
+        #hacking
+        squeeze_node = onnx.helper.make_node(
+            "Squeeze",
+            ["past_sequence_length"],
+            ["past_sequence_length_squeezed"],
+            name="past_sequence_length_cast_squeeze"
+        )
+        cast_node = onnx.helper.make_node(
+            "Cast",
+            ["past_sequence_length_squeezed"],
+            [target_squeezed_past_seq_name],
+            name="past_sequence_length_cast_renamed",
+            to=TensorProto.INT64,
+        )
+        new_nodes.extend([squeeze_node, cast_node])
 
     for node in subg.node:
         if len(node.output) > 0 and rel_pos_bias_node is not None and node.output[0] == rel_pos_bias_node.input[1]:
@@ -1296,7 +1351,10 @@ def update_decoder_subgraph_share_buffer_and_use_decoder_masked_mha(subg: GraphP
                 "DecoderMaskedMultiHeadAttention", nis, node.output, name=node.name, **kwargs
             )
 
-        if node.name not in ["/decoder/model/decoder/Shape_1", "/decoder/model/decoder/Gather_1"]:
+        if node not in nodes_to_remove:
+            for index, name in enumerate(node.input):
+                if name in tensor_names_to_rename:
+                    node.input[index] = target_squeezed_past_seq_name
             new_nodes.extend([node])
 
     subg.ClearField("node")
