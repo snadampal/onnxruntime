@@ -195,7 +195,7 @@ class SymbolicShapeInference:
             "RestorePadding": self._infer_RestorePadding,
             "BiasGelu": self._infer_BiasGelu,
             "MultiHeadAttention": self._infer_MultiHeadAttention,
-            "DecoderMaskedMultiHeadAttention" : self._infer_DecoderMaskedMultiHeadAttention,
+            "DecoderMaskedMultiHeadAttention": self._infer_DecoderMaskedMultiHeadAttention,
             "EmbedLayerNormalization": self._infer_EmbedLayerNormalization,
             "FastGelu": self._infer_FastGelu,
             "Gelu": self._infer_Gelu,
@@ -2233,10 +2233,11 @@ class SymbolicShapeInference:
                 present_shape = [batch_size, num_heads, total_sequence_length, head_size]
 
                 assert output_dtype is not None
-                vi = self.known_vi_[node.output[1]]
-                vi.CopyFrom(helper.make_tensor_value_info(vi.name, output_dtype, present_shape))
-                vi = self.known_vi_[node.output[2]]
-                vi.CopyFrom(helper.make_tensor_value_info(vi.name, output_dtype, present_shape))
+                if len(node.output) > 2 and node.output[1] and node.output[2]:
+                    vi = self.known_vi_[node.output[1]]
+                    vi.CopyFrom(helper.make_tensor_value_info(vi.name, output_dtype, present_shape))
+                    vi = self.known_vi_[node.output[2]]
+                    vi.CopyFrom(helper.make_tensor_value_info(vi.name, output_dtype, present_shape))
 
     def _infer_DecoderMaskedMultiHeadAttention(self, node):  # noqa: N802
         # Output 0 has shape (batch_size, 1, v_hidden_size)
@@ -2252,7 +2253,7 @@ class SymbolicShapeInference:
             vi = self.known_vi_[node.output[0]]
             vi.CopyFrom(helper.make_tensor_value_info(node.output[0], output_dtype, output_shape))
 
-            if len(node.output) > 1:
+            if len(node.output) > 2 and node.output[1] and node.output[2]:
                 past_shape = self._try_get_shape(node, 5)
                 if past_shape is not None:
                     vi = self.known_vi_[node.output[1]]
