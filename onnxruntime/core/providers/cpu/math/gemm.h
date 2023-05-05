@@ -33,9 +33,9 @@ class Gemm : protected GemmBase, public OpKernel {
                           T alpha,
                           const T* a_data, const T* b_data,
                           T beta,
-                          _In_opt_ const T* c_data, _In_opt_ const TensorShape* c_shape,
-                          _Out_writes_(M* N) T* y_data,
-                          _Inout_opt_ concurrency::ThreadPool* thread_pool);
+                          const T* c_data, const TensorShape* c_shape,
+                          T* y_data,
+                          concurrency::ThreadPool* thread_pool);
 
  protected:
   TensorShape b_shape_;

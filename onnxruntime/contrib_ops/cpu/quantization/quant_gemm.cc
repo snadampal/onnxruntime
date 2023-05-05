@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #include "core/common/safeint.h"
+#include "core/common/narrow.h"
 #include "core/providers/cpu/math/gemm_base.h"
 #include "core/providers/cpu/math/gemm_helper.h"
 #include "core/providers/cpu/quantization/matmul_integer_base.h"
@@ -85,7 +86,7 @@ class QGemm : protected GemmBase, public MatMulIntegerBase {
       GemmBroadcastBias<int32_t>(M, N, 1, c->Data<int32_t>(), &(c->Shape()), gemm_output_data);
     }
 
-    MLAS_GEMM_QUANT_SHAPE_PARAMS gemm_shape{gsl::narrow<size_t>(M), gsl::narrow<size_t>(N), gsl::narrow<size_t>(K), a_is_signed, b_is_signed, c != nullptr};
+    MLAS_GEMM_QUANT_SHAPE_PARAMS gemm_shape{narrow<size_t>(M), narrow<size_t>(N), narrow<size_t>(K), a_is_signed, b_is_signed, c != nullptr};
     MLAS_GEMM_QUANT_DATA_PARAMS gemm_param;
 
     gemm_param.A = a_data;

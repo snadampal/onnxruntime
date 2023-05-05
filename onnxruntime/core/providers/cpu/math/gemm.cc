@@ -144,9 +144,9 @@ void Gemm<T>::ComputeGemm(CBLAS_TRANSPOSE trans_a, CBLAS_TRANSPOSE trans_b,
                           T alpha,
                           const T* a_data, const T* b_data,
                           T beta,
-                          _In_opt_ const T* c_data, _In_opt_ const TensorShape* c_shape,
-                          _Out_writes_(M* N) T* y_data,
-                          _Inout_opt_ concurrency::ThreadPool* thread_pool) {
+                          const T* c_data, const TensorShape* c_shape,
+                          T* y_data,
+                          concurrency::ThreadPool* thread_pool) {
   // if input is empty tensor, return directly as nothing need to be calculated.
   if (M == 0 || N == 0)
     return;
@@ -172,9 +172,9 @@ void Gemm<MLFloat16>::ComputeGemm(CBLAS_TRANSPOSE trans_a, CBLAS_TRANSPOSE trans
                                   MLFloat16 alpha,
                                   const MLFloat16* a_data, const MLFloat16* b_data,
                                   MLFloat16 beta,
-                                  _In_opt_ const MLFloat16* c_data, _In_opt_ const TensorShape* c_shape,
-                                  _Out_writes_(M* N) MLFloat16* y_data,
-                                  _Inout_opt_ concurrency::ThreadPool* thread_pool) {
+                                  const MLFloat16* c_data, const TensorShape* c_shape,
+                                  MLFloat16* y_data,
+                                  concurrency::ThreadPool* thread_pool) {
   // if input is empty tensor, return directly as nothing need to be calculated.
   if (M == 0 || N == 0)
     return;
