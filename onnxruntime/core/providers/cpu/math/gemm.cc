@@ -367,7 +367,7 @@ Status Gemm<MLFloat16>::Compute(OpKernelContext* context) const {
     ComputeGemm(trans_A_, trans_B_, M, N, K, static_cast<MLFloat16>(alpha_), A->Data<MLFloat16>(), B->Data<MLFloat16>(), static_cast<MLFloat16>(beta_),
                 c_data, c_shape, y_data, thread_pool);
   } else {
-    ORT_NOT_IMPLEMENTED("This type of MLFloat16 GEMM kernel is not implemented yet");
+    ORT_NOT_IMPLEMENTED("Prepacking of B is supported by MLAS half gemm API, but not implemented by this kernel yet");
   }
 
   ComputeActivation(y_data, SafeInt<size_t>(M) * N, thread_pool);
