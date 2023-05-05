@@ -38,7 +38,7 @@ RUN pip install \
       requests \
       sacrebleu==1.5.1 \
       sacremoses \
-      scipy \
+      scipy==1.10.0 \
       scikit-learn \
       tokenizers \
       sentencepiece \
