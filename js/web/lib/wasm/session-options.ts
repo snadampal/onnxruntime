@@ -69,17 +69,20 @@ const setExecutionProviders =
             if (typeof ep !== 'string') {
               const webnnOptions = ep as InferenceSession.WebNNExecutionProviderOption;
               if (webnnOptions?.deviceType) {
-                const keyDataOffset = allocWasmString("deviceType", allocs);
-                const valueDataOffset = allocWasmString(webnnOptions.deviceType.toString(), allocs);
-                if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
-                  throw new Error(`Can't set a session config entry: "deviceType" - ${webnnOptions.deviceType}`);
+                const keyDataOffset = allocWasmString('deviceType', allocs);
+                const valueDataOffset = allocWasmString(webnnOptions.deviceType, allocs);
+                if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !==
+                    0) {
+                  throw new Error(`Can't set a session config entry: 'deviceType' - ${webnnOptions.deviceType}`);
                 }
               }
               if (webnnOptions?.powerPreference) {
-                const keyDataOffset = allocWasmString("powerPreference", allocs);
-                const valueDataOffset = allocWasmString(webnnOptions.powerPreference.toString(), allocs);
-                if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !== 0) {
-                  throw new Error(`Can't set a session config entry: "powerPreference" - ${webnnOptions.powerPreference}`);
+                const keyDataOffset = allocWasmString('powerPreference', allocs);
+                const valueDataOffset = allocWasmString(webnnOptions.powerPreference, allocs);
+                if (getInstance()._OrtAddSessionConfigEntry(sessionOptionsHandle, keyDataOffset, valueDataOffset) !==
+                    0) {
+                  throw new Error(
+                      `Can't set a session config entry: 'powerPreference' - ${webnnOptions.powerPreference}`);
                 }
               }
             }
