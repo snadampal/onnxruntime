@@ -179,9 +179,6 @@ void Gemm<MLFloat16>::ComputeGemm(CBLAS_TRANSPOSE trans_a, CBLAS_TRANSPOSE trans
   if (M == 0 || N == 0)
     return;
 
-  // Broadcast the bias as needed if bias is given
-  GemmBroadcastBias(M, N, beta, c_data, c_shape, y_data);
-
 #if defined(__GNUC__) && defined(HAS_CLASS_MEMACCESS)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
@@ -217,6 +214,8 @@ void Gemm<MLFloat16>::ComputeGemm(CBLAS_TRANSPOSE trans_a, CBLAS_TRANSPOSE trans
   }
 #endif
   // Fallback to Eigen
+  // Broadcast the bias as needed if bias is given
+  GemmBroadcastBias(M, N, beta, c_data, c_shape, y_data);
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
