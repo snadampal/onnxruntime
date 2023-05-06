@@ -105,7 +105,9 @@ jobs:
     skipComponentGovernanceDetection: true
   workspace:
     clean: all
-  pool: Onnxruntime-Linux-GPU-T4
+  pool:
+    name: Onnxruntime-Linux-GPU-T4
+    demands: Priority -equals High
   dependsOn:
   - Linux_Build
   steps:
