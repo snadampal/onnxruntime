@@ -48,6 +48,9 @@ class MatMul<float> final : public OpKernel {
   int64_t trans_b_attr_;
   bool trans_batch_a_;
   bool trans_batch_b_;
+
+  //fastmath mode state
+  bool is_fastmath_enabled;
 };
 
 }  // namespace onnxruntime
