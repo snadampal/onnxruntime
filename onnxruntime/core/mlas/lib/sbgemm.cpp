@@ -17,7 +17,6 @@ Abstract:
 --*/
 
 #include "mlasi.h"
-
 //
 // Define the number of rows from matrix A to transpose to a local buffer.
 //
@@ -248,19 +247,56 @@ Return Value:
     // time.
     //
     //
+
     while (CountX >= 8) {
         const float* b = B;
-        size_t y = CountY;
+        int y = CountY;
 
-        do {
-        MLAS_FLOAT32X4 t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
-        MLAS_FLOAT32X4 t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
-        MLAS_FLOAT32X4 t1_l = MlasLoadFloat32x4(&b[ldb * 1]);
-        MLAS_FLOAT32X4 t1_h = MlasLoadFloat32x4(&b[ldb * 1 + 4]);
-        MLAS_FLOAT32X4 t2_l = MlasLoadFloat32x4(&b[ldb * 2]);
-        MLAS_FLOAT32X4 t2_h = MlasLoadFloat32x4(&b[ldb * 2 + 4]);
-        MLAS_FLOAT32X4 t3_l = MlasLoadFloat32x4(&b[ldb * 3]);
-        MLAS_FLOAT32X4 t3_h = MlasLoadFloat32x4(&b[ldb * 3 + 4]);
+        while (y > 0) {
+
+        MLAS_FLOAT32X4 t0_l = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t0_h = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t1_l = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t1_h = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t2_l = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t2_h = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t3_l = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t3_h = MlasZeroFloat32x4();
+
+	
+        if (y >= 4) {
+        t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
+        t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
+                t1_l = MlasLoadFloat32x4(&b[ldb * 1]);
+        t1_h = MlasLoadFloat32x4(&b[ldb * 1 + 4]);
+        t2_l = MlasLoadFloat32x4(&b[ldb * 2]);
+        t2_h = MlasLoadFloat32x4(&b[ldb * 2 + 4]);
+        t3_l = MlasLoadFloat32x4(&b[ldb * 3]);
+        t3_h = MlasLoadFloat32x4(&b[ldb * 3 + 4]);
+	} else {
+		switch (y) {
+
+                 case 3:
+        t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
+        t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
+                t1_l = MlasLoadFloat32x4(&b[ldb * 1]);
+        t1_h = MlasLoadFloat32x4(&b[ldb * 1 + 4]);
+        t2_l = MlasLoadFloat32x4(&b[ldb * 2]);
+        t2_h = MlasLoadFloat32x4(&b[ldb * 2 + 4]);
+
+break;
+                 case 2:
+                t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
+        t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
+                t1_l = MlasLoadFloat32x4(&b[ldb * 1]);
+        t1_h = MlasLoadFloat32x4(&b[ldb * 1 + 4]);
+break;
+                 case 1:
+        t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
+        t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
+        break;
+         }
+	}
 
         float32x4x2_t z0_l = vzipq_f32(t0_l, t2_l);
         float32x4x2_t z1_l = vzipq_f32(t1_l, t3_l);
@@ -297,12 +333,11 @@ Return Value:
 
         vst1q_bf16(&D[16], t0t1_h_8h);
         vst1q_bf16(&D[24], t2t3_h_8h);
-
             D += 32;
             b += ldb*4;
             y -= 4;
 
-        } while (y >=4);
+        };
 
         B += 8;
         CountX -= 8;
@@ -314,76 +349,103 @@ Return Value:
     //
     if (CountX > 0) {
 
-        MLAS_FLOAT32X4 t0_l = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t0_h = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t1_l = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t1_h = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t2_l = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t2_h = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t3_l = MlasZeroFloat32x4();
-        MLAS_FLOAT32X4 t3_h = MlasZeroFloat32x4();
+	int y = CountY;
 
-	size_t y = CountY;
+        while (y > 0) {
+	   bfloat16_t* d = D;
+           const float* b = B;
+	   size_t d_block_inc = 0;
 
-        do {
-
-            bfloat16_t* d = D;
-            const float* b = B;
-
-            bfloat16x8_t t0t1_l_4h = vcvtq_low_bf16_f32(t0_l);
-            bfloat16x8_t t0t1_l_8h = vcvtq_high_bf16_f32(t0t1_l_4h, t1_l);
-
-            bfloat16x8_t t2t3_l_4h = vcvtq_low_bf16_f32(t2_l);
-            bfloat16x8_t t2t3_l_8h = vcvtq_high_bf16_f32(t2t3_l_4h, t3_l);
-
-            vst1q_bf16(&D[0], t0t1_l_8h);
-            vst1q_bf16(&D[8], t2t3_l_8h);
-
-            bfloat16x8_t t0t1_h_4h = vcvtq_low_bf16_f32(t0_h);
-            bfloat16x8_t t0t1_h_8h = vcvtq_high_bf16_f32(t0t1_h_4h, t1_h);
-
-            bfloat16x8_t t2t3_h_4h = vcvtq_low_bf16_f32(t2_h);
-            bfloat16x8_t t2t3_h_8h = vcvtq_high_bf16_f32(t2t3_h_4h, t3_h);
-
-            vst1q_bf16(&D[16], t0t1_h_8h);
-            vst1q_bf16(&D[24], t2t3_h_8h);
 
             if ((CountX & 4) != 0) {
-        MLAS_FLOAT32X4 t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
-        MLAS_FLOAT32X4 t1_l = MlasLoadFloat32x4(&b[ldb * 1]);
-        MLAS_FLOAT32X4 t2_l = MlasLoadFloat32x4(&b[ldb * 2]);
-        MLAS_FLOAT32X4 t3_l = MlasLoadFloat32x4(&b[ldb * 3]);
 
+        MLAS_FLOAT32X4 t0 = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t1 = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t2 = MlasZeroFloat32x4();
+        MLAS_FLOAT32X4 t3 = MlasZeroFloat32x4();
+        if ( y >= 4) {
+	        t0 = MlasLoadFloat32x4(&b[ldb * 0]);
+        t1 = MlasLoadFloat32x4(&b[ldb * 1]);
+        t2 = MlasLoadFloat32x4(&b[ldb * 2]);
+t3 = MlasLoadFloat32x4(&b[ldb * 3]);
 
-        float32x4x2_t z0_l = vzipq_f32(t0_l, t2_l);
-        float32x4x2_t z1_l = vzipq_f32(t1_l, t3_l);
-        float32x4x2_t o0_l = vzipq_f32(z0_l.val[0], z1_l.val[0]);
-        float32x4x2_t o1_l = vzipq_f32(z0_l.val[1], z1_l.val[1]);
-        t0_l = o0_l.val[0];
-        t1_l = o0_l.val[1];
-        t2_l = o1_l.val[0];
-        t3_l = o1_l.val[1];
+	} else {
 
-        bfloat16x8_t t0t1_l_4h = vcvtq_low_bf16_f32(t0_l);
-        bfloat16x8_t t0t1_l_8h = vcvtq_high_bf16_f32(t0t1_l_4h, t1_l);
+	switch(y) {
 
-        bfloat16x8_t t2t3_l_4h = vcvtq_low_bf16_f32(t2_l);
-        bfloat16x8_t t2t3_l_8h = vcvtq_high_bf16_f32(t2t3_l_4h, t3_l);
+                 case 3:
+        t0 = MlasLoadFloat32x4(&b[ldb * 0]);
+        t1 = MlasLoadFloat32x4(&b[ldb * 1]);
+        t2 = MlasLoadFloat32x4(&b[ldb * 2]);
 
-        vst1q_bf16(&D[0], t0t1_l_8h);
-        vst1q_bf16(&D[8], t2t3_l_8h);
+	break;
+                 case 2:
+                t0 = MlasLoadFloat32x4(&b[ldb * 0]);
+                t1 = MlasLoadFloat32x4(&b[ldb * 1]);
+		std::cout << "2 ROWS " << std::endl;
+
+		break;
+                 case 1:
+        t0 = MlasLoadFloat32x4(&b[ldb * 0]);
+
+	break;
+         }
+	}
+
+        float32x4x2_t z0 = vzipq_f32(t0, t2);
+        float32x4x2_t z1 = vzipq_f32(t1, t3);
+        float32x4x2_t o0 = vzipq_f32(z0.val[0], z1.val[0]);
+        float32x4x2_t o1 = vzipq_f32(z0.val[1], z1.val[1]);
+        t0 = o0.val[0];
+        t1 = o0.val[1];
+        t2 = o1.val[0];
+        t3 = o1.val[1];
+
+        bfloat16x8_t t0t1_4h = vcvtq_low_bf16_f32(t0);
+        bfloat16x8_t t0t1_8h = vcvtq_high_bf16_f32(t0t1_4h, t1);
+
+        bfloat16x8_t t2t3_4h = vcvtq_low_bf16_f32(t2);
+        bfloat16x8_t t2t3_8h = vcvtq_high_bf16_f32(t2t3_4h, t3);
+
+        vst1q_bf16(&D[0], t0t1_8h);
+        vst1q_bf16(&D[8], t2t3_8h);
 
                 d += 16;
                 b += 4;
+		d_block_inc += 16;
 	    }
 	    if ((CountX & 2) != 0) {
            
-            float32x2_t t0 = vld1_f32(&b[ldb * 0]);
-	    float32x2_t t1 = vld1_f32(&b[ldb * 1]);
-	    float32x2_t t2 = vld1_f32(&b[ldb * 2]);
-            float32x2_t t3 = vld1_f32(&b[ldb * 3]);
+            float32x2_t t0 = {0x0, 0x0};
+            float32x2_t t1 = {0x0, 0x0};;
+            float32x2_t t2 = {0x0, 0x0};;
+            float32x2_t t3 = {0x0, 0x0};;	
 
-        float32x2x2_t z0 = vzip_f32(t0, t2);
+if (y >= 4) {
+	        t0 = vld1_f32(&b[ldb * 0]);
+        t1 = vld1_f32(&b[ldb * 1]);
+        t2 = vld1_f32(&b[ldb * 2]);
+	        t3 = vld1_f32(&b[ldb * 3]);
+} else {
+
+		    switch(y) {
+
+                 case 3:
+        t0 = vld1_f32(&b[ldb * 0]);
+        t1 = vld1_f32(&b[ldb * 1]);
+        t2 = vld1_f32(&b[ldb * 2]);
+break;
+                 case 2:
+        t0 = vld1_f32(&b[ldb * 0]);
+        t1 = vld1_f32(&b[ldb * 1]);
+break;
+                 case 1:
+        t0 = vld1_f32(&b[ldb * 0]);
+break;
+         }
+}
+
+	float32x2x2_t z0 = vzip_f32(t0, t2);
         float32x2x2_t z1 = vzip_f32(t1, t3);
         float32x2x2_t o0 = vzip_f32(z0.val[0], z1.val[0]);
         float32x2x2_t o1 = vzip_f32(z0.val[1], z1.val[1]);
@@ -399,16 +461,71 @@ Return Value:
 
                 d += 8;
                 b += 2; 
+		d_block_inc += 8;
 	    
 	    }
-                D += 24;
+            if ((CountX & 1) != 0) {
+
+		    float  a = 0.0f;
+	    float  b = 0.0f;
+	    float  c = 0.0f;
+	    float  d = 0.0f;
+
+	    if (y >=4 ) {
+        a = (float)(*((float *)(&b) + (ldb * 0)));
+        b = (float)(*((float *)(&b) + (ldb * 1)));
+        c = (float)(*((float *)(&b) + (ldb * 2)));
+	d = (float)(*((float *)(&b) + (ldb * 3)));
+	    } else {
+                    switch(y) {
+
+                 case 3:
+        a = (float)(*((float *)(&b) + (ldb * 0)));
+        b = (float)(*((float *)(&b) + (ldb * 1)));
+        c = (float)(*((float *)(&b) + (ldb * 2)));
+break;
+                 case 2:
+        a = (float)(*((float *)(&b) + (ldb * 0)));
+        b = (float)(*((float *)(&b) + (ldb * 1)));
+break;
+                 case 1:
+        a = (float)(*((float *)(&b) + (ldb * 0)));
+break;
+         }
+	    }
+
+	    float32x2_t t0 = {a, 0x0};
+            float32x2_t t1 = {b, 0x0};
+            float32x2_t t2 = {c, 0x0};
+            float32x2_t t3 = {d, 0x0};
+
+        float32x2x2_t z0 = vzip_f32(t0, t2);
+        float32x2x2_t z1 = vzip_f32(t1, t3);
+        float32x2x2_t o0 = vzip_f32(z0.val[0], z1.val[0]);
+        float32x2x2_t o1 = vzip_f32(z0.val[1], z1.val[1]);
+
+        float32x4_t tt0 = vcombine_f32(o0.val[0], o0.val[1]);
+
+        float32x4_t tt1 = vcombine_f32(o1.val[0], o1.val[1]);
+
+        bfloat16x8_t t_4h = vcvtq_low_bf16_f32(tt0);
+        bfloat16x8_t t_8h = vcvtq_high_bf16_f32(t_4h, tt1);
+
+        vst1q_bf16(&D[0], t_8h);
+
+                d += 8;
+                b += 1;
+		d_block_inc += 8;
+
+            }
+                D += d_block_inc;
                 B += 4*ldb;
 		y -= 4;
-            }  while (y >= 4);
+            };
+
 
     }
 }
-
 
 template<unsigned M,unsigned N>
 inline
@@ -605,6 +722,7 @@ Return Value:
     // Transpose elements from matrix B into the packed buffer of 4x2 elements at a
     // time.
     //
+
 
       while (CountY >= 16) {
         const float* b = B;
