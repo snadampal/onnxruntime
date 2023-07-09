@@ -243,12 +243,11 @@ Return Value:
 --*/
 {
     //
-    // Copy data from matrix B into the destination buffer 16 columns at a
+    // Copy data from matrix B into the destination buffer 4x2 blocks at a
     // time.
     //
     //
-
-    while (CountX >= 8) {
+	while (CountX >= 8) {
         const float* b = B;
         int y = CountY;
 
@@ -263,7 +262,6 @@ Return Value:
         MLAS_FLOAT32X4 t3_l = MlasZeroFloat32x4();
         MLAS_FLOAT32X4 t3_h = MlasZeroFloat32x4();
 
-	
         if (y >= 4) {
         t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
         t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
@@ -294,6 +292,7 @@ break;
                  case 1:
         t0_l = MlasLoadFloat32x4(&b[ldb * 0]);
         t0_h = MlasLoadFloat32x4(&b[ldb * 0 + 4]);
+
         break;
          }
 	}
@@ -333,7 +332,8 @@ break;
 
         vst1q_bf16(&D[16], t0t1_h_8h);
         vst1q_bf16(&D[24], t2t3_h_8h);
-            D += 32;
+
+	D += 32;
             b += ldb*4;
             y -= 4;
 
@@ -352,10 +352,8 @@ break;
 	int y = CountY;
 
         while (y > 0) {
-	   bfloat16_t* d = D;
            const float* b = B;
-	   size_t d_block_inc = 0;
-
+	   size_t b_inc = 0;
 
             if ((CountX & 4) != 0) {
 
@@ -382,7 +380,6 @@ t3 = MlasLoadFloat32x4(&b[ldb * 3]);
                  case 2:
                 t0 = MlasLoadFloat32x4(&b[ldb * 0]);
                 t1 = MlasLoadFloat32x4(&b[ldb * 1]);
-		std::cout << "2 ROWS " << std::endl;
 
 		break;
                  case 1:
@@ -410,9 +407,9 @@ t3 = MlasLoadFloat32x4(&b[ldb * 3]);
         vst1q_bf16(&D[0], t0t1_8h);
         vst1q_bf16(&D[8], t2t3_8h);
 
-                d += 16;
+                D += 16;
                 b += 4;
-		d_block_inc += 16;
+		b_inc += 4;
 	    }
 	    if ((CountX & 2) != 0) {
            
@@ -459,9 +456,9 @@ break;
 
         vst1q_bf16(&D[0], t_8h);
 
-                d += 8;
+                D += 8;
                 b += 2; 
-		d_block_inc += 8;
+		b_inc += 2;
 	    
 	    }
             if ((CountX & 1) != 0) {
@@ -472,25 +469,31 @@ break;
 	    float  d = 0.0f;
 
 	    if (y >=4 ) {
-        a = (float)(*((float *)(&b) + (ldb * 0)));
-        b = (float)(*((float *)(&b) + (ldb * 1)));
-        c = (float)(*((float *)(&b) + (ldb * 2)));
-	d = (float)(*((float *)(&b) + (ldb * 3)));
+		    a = *(float*)(&B[ldb * 0 + b_inc]);
+b = *(float*)(&B[ldb * 1 + b_inc]);
+c = *(float*)(&B[ldb * 2 + b_inc]);
+d = *(float*)(&B[ldb * 3 + b_inc]);
+
 	    } else {
                     switch(y) {
 
                  case 3:
-        a = (float)(*((float *)(&b) + (ldb * 0)));
-        b = (float)(*((float *)(&b) + (ldb * 1)));
-        c = (float)(*((float *)(&b) + (ldb * 2)));
-break;
+
+			                     a = *(float*)(&B[ldb * 0 + b_inc]);
+b = *(float*)(&B[ldb * 1 + b_inc]);
+c = *(float*)(&B[ldb * 2 + b_inc]);
+			 
+			 break;
                  case 2:
-        a = (float)(*((float *)(&b) + (ldb * 0)));
-        b = (float)(*((float *)(&b) + (ldb * 1)));
-break;
+
+			                     a = *(float*)(&B[ldb * 0 + b_inc]);
+b = *(float*)(&B[ldb * 1 + b_inc]);
+			 
+			 break;
                  case 1:
-        a = (float)(*((float *)(&b) + (ldb * 0)));
-break;
+
+			                     a = *(float*)(&B[ldb * 0 + b_inc]);
+			 break;
          }
 	    }
 
@@ -513,19 +516,19 @@ break;
 
         vst1q_bf16(&D[0], t_8h);
 
-                d += 8;
+                D += 8;
                 b += 1;
-		d_block_inc += 8;
+		b_inc += 1;
 
             }
-                D += d_block_inc;
                 B += 4*ldb;
 		y -= 4;
             };
-
-
     }
+
+
 }
+
 
 template<unsigned M,unsigned N>
 inline
@@ -723,7 +726,6 @@ Return Value:
     // time.
     //
 
-
       while (CountY >= 16) {
         const float* b = B;
         size_t x = CountX;
@@ -911,7 +913,7 @@ Return Value:
 --*/
 {
 
-    while (CountM >= 2) {
+   while (CountM > 0) {
 
         size_t RowsHandled;
 
@@ -925,7 +927,7 @@ Return Value:
         CountM -= RowsHandled;
     }
 
-    return C;
+return C;
 }
 
 void
@@ -988,6 +990,7 @@ Return Value:
 {
     float PanelA[MLAS_SGEMM_TRANSA_ROWS * MLAS_SGEMM_STRIDEK];
     MLAS_DECLSPEC_ALIGN(bfloat16_t PanelB[MLAS_SGEMM_STRIDEN * MLAS_SGEMM_STRIDEK], 16 * sizeof(bfloat16_t));
+
 
     //
     // Handle the special case of K equals zero. Apply the beta multiplier to

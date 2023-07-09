@@ -179,7 +179,7 @@ Status MatMul<float>::PrePack(const Tensor& tensor, int input_idx, /*out*/ Alloc
   // only pack Matrix B
   if (input_idx == 1) {
     size_t packed_b_size;
-    if (is_fastmath_enabled && (dim1%4 == 0) && (dim2%4 == 0)) {
+    if (is_fastmath_enabled) {
         is_packed = GemmPackBbf16(alloc, tensor, trans_b_attr_ != 0, packed_b_, packed_b_size, b_shape_);
     } else {
         is_packed = GemmPackBFp32(alloc, tensor, trans_b_attr_ != 0, packed_b_, packed_b_size, b_shape_);
@@ -250,12 +250,14 @@ Status MatMul<float>::Compute(OpKernelContext* ctx) const {
     data[i].alpha = alpha_attr_;
     data[i].beta = 0.0f;
   }
-  if ((M%2 == 0) && (N%4 == 0) && (K%4 == 0)/* && is_fastmath_enabled*/) {
-     MlasSBGemmBatch(trans_a ? CblasTrans : CblasNoTrans, trans_b ? CblasTrans : CblasNoTrans,
+  if (1/* && is_fastmath_enabled*/) {
+     	  MlasSBGemmBatch(trans_a ? CblasTrans : CblasNoTrans, trans_b ? CblasTrans : CblasNoTrans,
                 M, N, K, data.data(), max_len, thread_pool);
+  
   } else {
      MlasGemmBatch(trans_a ? CblasTrans : CblasNoTrans, trans_b ? CblasTrans : CblasNoTrans,
                 M, N, K, data.data(), max_len, thread_pool);
+ 
   }
   return Status::OK();
 }
