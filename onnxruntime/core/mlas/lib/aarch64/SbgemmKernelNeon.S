@@ -35,6 +35,7 @@ Abstract:
         .equ  .LMlasSbgemmKernel_SavedRegisters,    144
         .equ  .LMlasSbgemmKernel_SavedRegisters_Neg, -144
 
+
 //
 // ClearRowAccumulators
 //
@@ -79,17 +80,18 @@ Abstract:
 
         .endm
 
-//
 // LoadMatrixAElementsBy8
 //
-// Generates the code to load 8 elements from matrix A.
+// Generates the code to load 4 or 8 elements from matrix A.
 //
         .macro  LoadMatrixAElementsBy8 Rows
 
         ldr     q8,[x0],#16
-        ldr     q1,[x10],#16
         bfcvtn  v8.4h, v8.4s
+.if \Rows\() > 1
+        ldr     q1,[x10],#16
         bfcvtn2 v8.8h, v1.4s
+.endif
 .if \Rows\() > 2
         ldr     q9,[x11],#16
         ldr     q1,[x12],#16
@@ -110,6 +112,7 @@ Abstract:
 .endif
 
       .endm
+
 
 //
 // MultiplyAccumulateRow
@@ -178,7 +181,7 @@ Abstract:
         add     x22,x21,x6,lsl #2           // compute matrix A plus 6 rows
         add     x23,x22,x6,lsl #2           // compute matrix A plus 7 rows
 .endif
-        sub     x9,x3,#4                    // decrement block count to process
+        mov     x9,x3                    //  block count to process
         tbnz    x9,#7,.L\Mode\().ProcessRemaining\Columns\().x\Rows\().Blocks
 
 .L\Mode\().Compute\Columns\().x\Rows\().BlockBy4Loop:
@@ -250,21 +253,113 @@ Abstract:
         .endm
 
 //
+// OutputRow2Element
 // OutputRow4Element
+// OutputRow6Element
 // OutputRow8Element
+// OutputRow10Element
+// OutputRow12Element
+// OutputRow14Element
 // OutputRow16Element
 //
 // Generates the code to store elements to the output block.
 //
 
-        .macro  OutputRow4Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
+        .macro  OutputRow2Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
 
 .ifeqs "\Mode\()","Add"
-       //implement logic to store half of the vect register into two memory locations
+mov x27,#0
+mov v8.2D[0],x27       
+mov v8.2D[1],x27 
+fmla    v8.4s,v\Vec1Reg\().4s,v0.s[0]
+
+        mov     w27, v8.4S[0]
+str   w27, [\AddrReg1\()],#4 
+
+        mov     w27, v8.4S[2]
+str   w27, [\AddrReg2\()],#4        
+
 .else
+
+        mov     w27, v\Vec1Reg\().4S[0]
+str   w27, [\AddrReg1\()],#4 
+
+        mov     w27, v\Vec1Reg\().4S[2]
+str   w27, [\AddrReg2\()],#4
+
+
 .endif
 
         .endm
+
+
+        .macro  OutputRow4Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
+
+.ifeqs "\Mode\()","Add"
+mov x27,#0
+mov v8.2D[0],x27    
+mov v8.2D[1],x27
+
+        fmla    v8.4s,v\Vec1Reg\().4s,v0.s[0]
+
+        mov     x27, v8.2D[0]
+        mov     x28, v8.2D[1]
+
+        str      x27, [\AddrReg1\()],#8
+        str      x28, [\AddrReg2\()],#8
+
+.else
+        mov     x27, v\Vec1Reg\().2D[0]
+        mov     x28, v\Vec1Reg\().2D[1]
+
+        str      x27, [\AddrReg1\()],#8
+        str      x28, [\AddrReg2\()],#8
+
+.endif
+
+        .endm
+
+
+        .macro  OutputRow6Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
+
+.ifeqs "\Mode\()","Add"
+        ldr     q8,[\AddrReg1\()],#16
+        ldr     q9,[\AddrReg2\()],#16
+
+        uzp1    v4.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+        fmla    v8.4s,v4.4s,v0.s[0]
+        fmla    v9.4s,v5.4s,v0.s[0]
+
+         mov     x27, v8.2D[0]
+        str   x27, [\AddrReg1\()],#8
+        mov     w27, v8.4S[2]
+str   w27, [\AddrReg1\()],#4 
+
+         mov     x27, v9.2D[0]
+        str   x27, [\AddrReg2\()],#8
+        mov     w27, v9.4S[2]
+str   w27, [\AddrReg2\()],#4 
+
+.else
+        uzp1    v4.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+         mov     x27, v4.2D[0]
+        str   x27, [\AddrReg1\()],#8
+        mov     w27, v4.4S[2]
+str   w27, [\AddrReg1\()],#4 
+
+         mov     x27, v5.2D[0]
+        str   x27, [\AddrReg2\()],#8
+        mov     w27, v5.4S[2]
+str   w27, [\AddrReg2\()],#4 
+
+.endif
+
+        .endm
+
 
         .macro  OutputRow8Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
 
@@ -291,6 +386,149 @@ Abstract:
 .endif
 
         .endm
+
+
+        .macro  OutputRow10Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
+
+.ifeqs "\Mode\()","Add"
+        ldr     q8,[\AddrReg1\()],#16
+        ldr     q9,[\AddrReg2\()],#16
+
+        uzp1    v4.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+        fmla    v8.4s,v4.4s,v0.s[0]
+        fmla    v9.4s,v5.4s,v0.s[0]
+
+        str     q8,[\AddrReg1\()],#16
+        str     q9,[\AddrReg2\()],#16
+        
+mov x27,#0
+mov v8.2D[0],x27    
+mov v8.2D[1],x27
+
+        fmla    v8.4s,v\Vec3Reg\().4s,v0.s[0]
+
+        mov     w27, v8.4S[0]
+        mov     w28, v8.4S[2]
+
+        str      w27, [\AddrReg1\()],#4
+        str      w28, [\AddrReg2\()],#4
+
+.else
+        uzp1    v4.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+        str     q4,[\AddrReg1\()],#16
+        str     q5,[\AddrReg2\()],#16
+
+        mov     w27, v\Vec3Reg\().4S[0]
+        mov     w28, v\Vec3Reg\().4S[2]
+
+        str      w27, [\AddrReg1\()],#4
+        str      w28, [\AddrReg2\()],#4
+
+.endif
+.endm
+
+
+        .macro  OutputRow12Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
+
+.ifeqs "\Mode\()","Add"
+        ldr     q8,[\AddrReg1\()],#16
+        ldr     q9,[\AddrReg2\()],#16
+
+        uzp1    v4.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+        fmla    v8.4s,v4.4s,v0.s[0]
+        fmla    v9.4s,v5.4s,v0.s[0]
+
+        str     q8,[\AddrReg1\()],#16
+        str     q9,[\AddrReg2\()],#16
+        
+mov x27,#0
+mov v8.2D[0],x27    
+mov v8.2D[1],x27
+
+fmla    v8.4s,v\Vec3Reg\().4s,v0.s[0]
+
+        mov     x27, v8.2D[0]
+        mov     x28, v8.2D[1]
+
+        str      x27, [\AddrReg1\()],#8
+        str      x28, [\AddrReg2\()],#8
+
+.else
+        uzp1    v4.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+        str     q4,[\AddrReg1\()],#16
+        str     q5,[\AddrReg2\()],#16
+
+        mov     x27, v\Vec3Reg\().2D[0]
+        mov     x28, v\Vec3Reg\().2D[1]
+     
+        str	 x27, [\AddrReg1\()],#8
+        str      x28, [\AddrReg2\()],#8
+
+.endif
+
+        .endm
+
+       .macro  OutputRow14Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
+
+.ifeqs "\Mode\()","Add"
+        ldp     q8,q10,[\AddrReg1\()],#32
+        ldp     q9,q11,[\AddrReg2\()],#32
+
+        uzp1    v4.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d,v\Vec1Reg\().2d,v\Vec2Reg\().2d
+
+        uzp1    v6.2d, v\Vec3Reg\().2d,v\Vec4Reg\().2d
+        uzp2    v7.2d, v\Vec3Reg\().2d,v\Vec4Reg\().2d
+
+        fmla    v8.4s,v4.4s,v0.s[0]
+        fmla    v9.4s,v5.4s,v0.s[0]
+        fmla    v10.4s,v6.4s,v0.s[0]
+        fmla    v11.4s,v7.4s,v0.s[0]
+
+        str     q8,[\AddrReg1\()],#16
+
+         mov     x27, v10.2D[0]
+        str   x27, [\AddrReg1\()],#8
+        mov     w27, v10.4S[2]
+str   w27, [\AddrReg1\()],#4 
+
+        str     q9,[\AddrReg2\()],#32
+         mov     x27, v11.2D[0]
+        str   x27, [\AddrReg2\()],#8
+        mov     w27, v11.4S[2]
+str   w27, [\AddrReg2\()],#4 
+
+
+
+.else
+        uzp1    v4.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp2    v5.2d, v\Vec1Reg\().2d,v\Vec2Reg\().2d
+        uzp1    v6.2d, v\Vec3Reg\().2d,v\Vec4Reg\().2d
+        uzp2    v7.2d, v\Vec3Reg\().2d,v\Vec4Reg\().2d
+
+        str     q4,[\AddrReg1\()],#16
+         mov     x27, v6.2D[0]
+        str   x27, [\AddrReg1\()],#8
+        mov     w27, v6.4S[2]
+str   w27, [\AddrReg1\()],#4 
+
+        str     q5,[\AddrReg2\()],#16
+         mov     x27, v7.2D[0]          
+        str   x27, [\AddrReg2\()],#8
+        mov     w27, v7.4S[2]
+str   w27, [\AddrReg2\()],#4 
+.endif
+
+        .endm
+
 
         .macro  OutputRow16Element Mode, AddrReg1, AddrReg2, Vec1Reg, Vec2Reg, Vec3Reg, Vec4Reg
 
@@ -351,47 +589,95 @@ Abstract:
 //
 
         .macro  ProcessRows Mode, Rows
-
         mov     x4,#\Rows\()                   // return number of rows handled
-        cmp     x5,#8
-        blt     .L\Mode\().ProcessLessThan8Columns\Rows\()
+        cmp     x5,#6
+        ble     .L\Mode\().ProcessNextColumnLoop6x\Rows\()
 
 .L\Mode\().ProcessNextColumnLoop8x\Rows\():
         ComputeBlockLoop \Mode\(),8,\Rows\()
 .ifeqs "\Mode\()","Zero"
         MultiplyAlphaBlock 8,\Rows\()
 .endif
+
         sub     x5,x5,#8
+        cmp   x5,#0
+        blt   .L\Mode\().Output14ElementsOnlyFor\Rows\()
         OutputBlock \Mode\(),16,\Rows\()
         mov     x0,x8               // reload matrix A
-        cmp     x5,#8
-        bge     .L\Mode\().ProcessNextColumnLoop8x\Rows\()
+        cmp     x5,#6
+        bgt     .L\Mode\().ProcessNextColumnLoop8x\Rows\()
         cbz     x5,.L\Mode\().ExitKernel
 
-.L\Mode\().ProcessLessThan8Columns\Rows\():
+
+.L\Mode\().ProcessNextColumnLoop6x\Rows\():
+
         cmp    x5,#4
-        blt .L\Mode\().ProcessLessThan4Columns\Rows\()
+        ble .L\Mode\().ProcessNextColumnLoop4x\Rows\()
+        ComputeBlockLoop \Mode\(),6,\Rows\()
+.ifeqs "\Mode\()","Zero"
+        MultiplyAlphaBlock 6,\Rows\()
+.endif
+        sub 	x5,x5,#6
+                cmp   x5,#0
+        blt   .L\Mode\().Output10ElementsOnlyFor\Rows\()
+        OutputBlock \Mode\(),12,\Rows\()
+
+        mov     x0,x8               // reload matrix A
+        cmp     x5,#4
+        bgt     .L\Mode\().ProcessNextColumnLoop6x\Rows\()
+        b     .L\Mode\().ExitKernel
+
+.L\Mode\().ProcessNextColumnLoop4x\Rows\():
+        cmp     x5,#2
+        ble .L\Mode\().ProcessNextColumnLoop2x\Rows\()
         ComputeBlockLoop \Mode\(),4,\Rows\()
 .ifeqs "\Mode\()","Zero"
         MultiplyAlphaBlock 4,\Rows\()
 .endif
-        sub 	x5,x5,#4
+        sub     x5,x5,#4
+        cmp   x5,#0
+        blt   .L\Mode\().Output6ElementsOnlyFor\Rows\()
+
         OutputBlock \Mode\(),8,\Rows\()
 
         mov     x0,x8               // reload matrix A
         cmp     x5,#2
-        bge     .L\Mode\().ProcessLessThan4Columns\Rows\()
+        bgt     .L\Mode\().ProcessNextColumnLoop4x\Rows\()
         b     .L\Mode\().ExitKernel
 
-.L\Mode\().ProcessLessThan4Columns\Rows\():
-        cmp     x5,#2
-        blt     .L\Mode\().ExitKernel
-	ComputeBlockLoop \Mode\(),2,\Rows\()
+.L\Mode\().ProcessNextColumnLoop2x\Rows\():
+        ComputeBlockLoop \Mode\(),2,\Rows\()
 .ifeqs "\Mode\()","Zero"
         MultiplyAlphaBlock 2,\Rows\()
 .endif
         sub     x5,x5,#2
+        cmp   x5,#0
+        blt   .L\Mode\().Output2ElementsOnlyFor\Rows\()
+
         OutputBlock \Mode\(),4,\Rows\()
+
+        mov     x0,x8               // reload matrix A
+        cmp     x5,#2
+        b     .L\Mode\().ExitKernel
+
+.L\Mode\().Output14ElementsOnlyFor\Rows\():
+	OutputBlock \Mode\(),14,\Rows\()
+b     .L\Mode\().ExitKernel
+
+
+.L\Mode\().Output10ElementsOnlyFor\Rows\():
+        OutputBlock \Mode\(),10,\Rows\()
+b     .L\Mode\().ExitKernel
+
+
+.L\Mode\().Output6ElementsOnlyFor\Rows\():
+        OutputBlock \Mode\(),6,\Rows\()
+b     .L\Mode\().ExitKernel
+
+
+.L\Mode\().Output2ElementsOnlyFor\Rows\():
+        OutputBlock \Mode\(),2,\Rows\()
+b     .L\Mode\().ExitKernel
 
         .endm
 
@@ -485,7 +771,7 @@ Return Value:
         ret
 
 //
-// Process 4 rows of the matrices.
+// Process 4 rows of the matrix.
 //
 
 .L\Mode\().ProcessCountMLessThan8:
@@ -495,14 +781,25 @@ Return Value:
         b       .L\Mode\().ExitKernel
 
 //
-// Process 2 row of the matrices. this is the min
-// we can support, because bfmmla
-// instructios needs at least 2 rows
+// Process 2 row of the matrix.
 //
 
 .L\Mode\().ProcessCountMLessThan4:
+        cmp     x4,#2
+        blt     .L\Mode\().ProcessCountMLessThan2
+
         ProcessRows \Mode\(),2
         b       .L\Mode\().ExitKernel
+
+
+//
+// Process the last row of the matrix.
+//
+
+.L\Mode\().ProcessCountMLessThan2:
+        ProcessRows \Mode\(),1
+        b       .L\Mode\().ExitKernel
+
 
         .endm
 
