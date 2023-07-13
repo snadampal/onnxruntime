@@ -181,7 +181,7 @@ Abstract:
         add     x22,x21,x6,lsl #2           // compute matrix A plus 6 rows
         add     x23,x22,x6,lsl #2           // compute matrix A plus 7 rows
 .endif
-        mov     x9,x3                    //  block count to process
+        sub    x9,x3,#4                   //  block count to process
         tbnz    x9,#7,.L\Mode\().ProcessRemaining\Columns\().x\Rows\().Blocks
 
 .L\Mode\().Compute\Columns\().x\Rows\().BlockBy4Loop:
@@ -204,6 +204,20 @@ Abstract:
 .L\Mode\().ProcessRemaining\Columns\().x\Rows\().Blocks:
         add     x9,x9,#4                    // correct for over-subtract above
         cbz     x9,.L\Mode\().Output\Columns\().x\Rows\().Block
+
+.L\Mode\().Compute\Columns\().x\Rows\().BlockBy4PaddedLoop:
+        LoadMatrixAElementsBy8 \Rows\()
+        ldr     q4, [x1],#16
+.if \Columns\() > 2
+        ldr     q5,[x1],#16
+.endif
+.if \Columns\() > 4
+        ldr     q6,[x1],#16
+.endif
+.if \Columns\() > 6
+        ldr     q7,[x1],#16
+.endif
+        MultiplyAccumulateBlock \Columns\(),\Rows\()
 
 .L\Mode\().Output\Columns\().x\Rows\().Block:
 

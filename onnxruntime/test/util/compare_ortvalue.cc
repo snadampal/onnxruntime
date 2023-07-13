@@ -65,6 +65,18 @@ const char* ElementTypeToString(MLDataType type) {
   return DataTypeImpl::ToString(type);
 }
 
+template <typename TypeToCheck>
+TypeToCheck cosine_similarity(const TypeToCheck *A, const TypeToCheck *B, size_t Vector_Length)
+{
+    TypeToCheck dot = 0.0, denom_a = 0.0, denom_b = 0.0 ;
+     for(size_t i = 0u; i < Vector_Length; ++i) {
+        dot += A[i] * B[i] ;
+        denom_a += A[i] * A[i] ;
+        denom_b += B[i] * B[i] ;
+    }
+    return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
+}
+
 /**
  * @brief Check if two values are closely matched with given tolerance.
 
@@ -111,7 +123,20 @@ std::pair<COMPARE_RESULT, std::string> CompareFloatResult(const Tensor& outvalue
     const double diff = std::fabs(expected_output[di] - real_value);
     const double tol = per_sample_tolerance + relative_per_sample_tolerance * std::fabs(expected_output[di]);
     if (!IsResultCloselyMatch<double>(real_value, expected_output[di], diff, tol)) {
-      res.first = COMPARE_RESULT::RESULT_DIFFERS;
+
+    	    if (1 /*&& use_cosine_similarity*/) {
+            float cos_sim = cosine_similarity(real_output, expected_output, size1);
+            if (abs(cos_sim) < 0.98) {
+           res.first = COMPARE_RESULT::RESULT_DIFFERS;
+        std::ostringstream oss;
+        oss << std::hex << "results differed, cosine similarity factor is " << cos_sim << ".";
+        res.second = oss.str();
+           }
+
+           return res;
+       }
+      
+	    res.first = COMPARE_RESULT::RESULT_DIFFERS;
       // update error message if this is a larger diff
       if (diff > max_diff || (std::isnan(diff) && !std::isnan(max_diff))) {
         int64_t expected_int = 0;

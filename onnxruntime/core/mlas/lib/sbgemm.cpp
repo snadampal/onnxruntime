@@ -1018,18 +1018,6 @@ Return Value:
     }
 
     //
-    // Handle the case when both B and C are column-vectors that are contiguous in memory.
-    // Because transposition of such vectors doesn't change their layout, and
-    // Transpose(A*B) = Transpose(B) * Transpose(A), we can apply the same 'small-M'
-    // optimization as above, with A and B flipped.
-    //
-
-    if (N == 1 && ldb == 1 && ldc == 1 && alpha == 1.0f && (beta == 0.0f || beta == 1.0f)) {
-            MlasGemvFloatKernel(A, B, C, K, N, ldb, (beta == 0.0f));
-            return;
-    }
-
-    //
     // Compute the strides to step through slices of the input matrices.
     //
     // Expand the N stride if K is small or expand the K stride if N is small
@@ -1410,7 +1398,7 @@ MlasSBGemmBatch(
     }
 
     //TODO: till the work split logic is implemented, process entire gemm kernel in single thread
-    TargetThreadCount=1;
+    //TargetThreadCount=1;
 
     //
     // Segment the operation across multiple threads.

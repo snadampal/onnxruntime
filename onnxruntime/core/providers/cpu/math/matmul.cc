@@ -179,7 +179,7 @@ Status MatMul<float>::PrePack(const Tensor& tensor, int input_idx, /*out*/ Alloc
   // only pack Matrix B
   if (input_idx == 1) {
     size_t packed_b_size;
-    if (is_fastmath_enabled) {
+    if (1 && is_fastmath_enabled && ((dim1*dim2) >= 32)) {
         is_packed = GemmPackBbf16(alloc, tensor, trans_b_attr_ != 0, packed_b_, packed_b_size, b_shape_);
     } else {
         is_packed = GemmPackBFp32(alloc, tensor, trans_b_attr_ != 0, packed_b_, packed_b_size, b_shape_);
@@ -250,9 +250,16 @@ Status MatMul<float>::Compute(OpKernelContext* ctx) const {
     data[i].alpha = alpha_attr_;
     data[i].beta = 0.0f;
   }
-  if (1/* && is_fastmath_enabled*/) {
-     	  MlasSBGemmBatch(trans_a ? CblasTrans : CblasNoTrans, trans_b ? CblasTrans : CblasNoTrans,
+  if (1 && ((N*K) >= 32)/* && is_fastmath_enabled*/) {
+std::cout << "CHECK SBGEMM" << "M:N:K" << M << ":" << N <<":" << K << "packed_b_" << bool(packed_b_) << std::endl;
+	  MlasSBGemmBatch(trans_a ? CblasTrans : CblasNoTrans, trans_b ? CblasTrans : CblasNoTrans,
                 M, N, K, data.data(), max_len, thread_pool);
+
+	             for (size_t t = 0; t < max_len; t++) {
+                   for (size_t s = 0; s < M*N; s++) {
+             std::cout << "Csbg[" << t << "][" << s <<"]="<< *((float*)(&(data[t].C[s]))) << "\t";
+                  }
+           }
   
   } else {
      MlasGemmBatch(trans_a ? CblasTrans : CblasNoTrans, trans_b ? CblasTrans : CblasNoTrans,

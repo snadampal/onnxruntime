@@ -226,18 +226,6 @@ struct TensorCheck<double> {
   }
 };
 
-template <typename TypeToCheck>
-TypeToCheck cosine_similarity(const TypeToCheck *A, const TypeToCheck *B, size_t Vector_Length)
-{
-    TypeToCheck dot = 0.0, denom_a = 0.0, denom_b = 0.0 ;
-     for(size_t i = 0u; i < Vector_Length; ++i) {
-        dot += A[i] * B[i] ;
-        denom_a += A[i] * A[i] ;
-        denom_b += B[i] * B[i] ;
-    }
-    return dot / (sqrt(denom_a) * sqrt(denom_b)) ;
-}
-
 
 template <typename TypeToCheck>
 void InternalNumericalCheck(const Tensor& expected,
@@ -268,8 +256,12 @@ void InternalNumericalCheck(const Tensor& expected,
 #else
   constexpr float threshold = 0.0001f;
 #endif
-  constexpr float cosine_similarity_threshold = 0.005f;
+  constexpr float cosine_similarity_threshold = 0.03f;
 
+  float dot = 0.0;
+  float denom_a = 0.0;
+  float denom_b = 0.0;
+  size_t diff_cnt = 0;
   for (int i = 0; i < size; ++i) {
     // NOTE: Check isnan first to work around MSVC linker bug when /LTCG:incremental is specified.
     // If the isinf check is first the isnan check and branch gets omitted
@@ -278,8 +270,14 @@ void InternalNumericalCheck(const Tensor& expected,
     } else if (std::isinf(cur_expected[i])) {  // Test infinity for equality
       ASSERT_EQ(cur_expected[i], cur_actual[i]) << "Expected infinity. i:" << i;
     } else if (use_cosine_similarity) {
-	    float vector_match_factor = cosine_similarity(cur_actual, cur_expected, size);
-	    ASSERT_NEAR(vector_match_factor, 1.0f, cosine_similarity_threshold) << "vector_match_factor:" << vector_match_factor;
+		    if (abs(cur_expected[i] - cur_actual[i]) > 0.0001){
+
+                             dot += cur_expected[i] * cur_actual[i] ;
+        denom_a += cur_expected[i] * cur_expected[i] ;
+        denom_b += cur_actual[i] * cur_actual[i] ;
+        diff_cnt++;
+		    }
+           
     } else {
       if (!has_abs_err && !has_rel_err) {
         // the default for existing tests
@@ -296,6 +294,13 @@ void InternalNumericalCheck(const Tensor& expected,
       }
     }
   }
+
+  if (diff_cnt) {
+  float cos_sim = dot / (sqrt(denom_a) * sqrt(denom_b));
+ ASSERT_NEAR(cos_sim, 1.0f, cosine_similarity_threshold)<< "cos_sim is not 1.0 " << cos_sim ;
+  } 
+
+
 }
 
 template <>

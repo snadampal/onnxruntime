@@ -30,5 +30,6 @@ void CheckOrtValuesAreEqual(std::string_view name, const OrtValue& expected, con
                             const ValidateOutputParams& params = {}, const std::string& provider_type = "",
 			    bool use_cosine_similarity=false);
 
+
 }  // namespace test
 }  // namespace onnxruntime

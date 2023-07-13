@@ -389,7 +389,7 @@ void BaseTester::ExecuteModel(Model& model, SessionType& session,
                                    provider_type, use_cosine_similarity);
           } else {
             CheckOrtValuesAreEqual(name, expected_data.data, ort_value, expected_data.validation_params,
-                                   provider_type, use_cosine_similarity);
+                                   provider_type, false);
           }
 
           ++idx;
